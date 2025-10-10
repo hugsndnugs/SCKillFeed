@@ -1,0 +1,8 @@
+__pycache__
+.pytest_cache
+kill_log.csv
+build
+dist
+.venv
+sc-kill-feed.cfg
+release
