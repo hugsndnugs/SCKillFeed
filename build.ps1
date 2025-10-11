@@ -2,7 +2,7 @@
 param(
     [string]$entry = "sc_kill_feed.py",
     [string]$name = "SCKillFeed",
-    [switch]$onefile = $true,
+    [switch]$onefile,
     [string]$SpecFile = "",
     [string]$OutDir = "release",
     [string]$Version = "",
@@ -25,7 +25,10 @@ if ($SpecFile -ne "") {
         $piArgs = @($defaultSpec)
     } else {
         $piArgs = @("--name", $name)
-        if ($onefile) { $piArgs += "--onefile" }
+        # Default to onefile=true if not explicitly set to false
+        if ($onefile -or (-not $PSBoundParameters.ContainsKey('onefile'))) { 
+            $piArgs += "--onefile" 
+        }
         $piArgs += "--console"
         $piArgs += $entry
     }
