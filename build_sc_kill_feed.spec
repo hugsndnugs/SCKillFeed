@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['sc_kill_feed.py'],
+    ['launcher.py'],
     pathex=[],
     binaries=[],
     datas=[],
