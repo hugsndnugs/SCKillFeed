@@ -1,6 +1,6 @@
 # Build script to create a single-file executable using PyInstaller
 param(
-    [string]$entry = "sc_kill_feed.py",
+    [string]$entry = "launcher.py",
     [string]$name = "SCKillFeed",
     [switch]$onefile,
     [string]$SpecFile = "",
