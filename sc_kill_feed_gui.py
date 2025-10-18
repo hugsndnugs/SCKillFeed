@@ -250,7 +250,7 @@ class StarCitizenKillFeedGUI:
         player_frame.pack(side=tk.RIGHT, padx=15, pady=15)
         
         self.player_label = tk.Label(player_frame, text=f"👤 Player: {self.player_name}", 
-                                   bg='#2a2a2a', fg='#00d4ff', 
+                                   bg='#0a0a0a', fg='#00d4ff', 
                                    font=('Segoe UI', 11, 'bold'), padx=10, pady=5)
         self.player_label.pack()
         
@@ -298,19 +298,19 @@ class StarCitizenKillFeedGUI:
         stats_container = ttk.Frame(kd_frame)
         stats_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
-        self.kills_label = tk.Label(stats_container, text="💀 Kills: 0", bg='#2a2a2a', fg='#00ff88', 
+        self.kills_label = tk.Label(stats_container, text="💀 Kills: 0", bg='#0a0a0a', fg='#00ff88', 
                                    font=('Segoe UI', 16, 'bold'), pady=8)
         self.kills_label.pack(fill=tk.X, pady=5)
         
-        self.deaths_label = tk.Label(stats_container, text="💀 Deaths: 0", bg='#2a2a2a', fg='#ff4757', 
+        self.deaths_label = tk.Label(stats_container, text="💀 Deaths: 0", bg='#0a0a0a', fg='#ff4757', 
                                     font=('Segoe UI', 16, 'bold'), pady=8)
         self.deaths_label.pack(fill=tk.X, pady=5)
         
-        self.kd_ratio_label = tk.Label(stats_container, text="📊 K/D Ratio: 0.00", bg='#2a2a2a', fg='#00d4ff', 
+        self.kd_ratio_label = tk.Label(stats_container, text="📊 K/D Ratio: 0.00", bg='#0a0a0a', fg='#00d4ff', 
                                       font=('Segoe UI', 14, 'bold'), pady=8)
         self.kd_ratio_label.pack(fill=tk.X, pady=5)
         
-        self.streak_label = tk.Label(stats_container, text="🔥 Current Streak: 0", bg='#2a2a2a', fg='#ffa502', 
+        self.streak_label = tk.Label(stats_container, text="🔥 Current Streak: 0", bg='#0a0a0a', fg='#ffa502', 
                                     font=('Segoe UI', 14, 'bold'), pady=8)
         self.streak_label.pack(fill=tk.X, pady=5)
         
