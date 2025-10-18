@@ -220,7 +220,7 @@ class StarCitizenKillFeedGUI:
         self.status_var = tk.StringVar()
         self.status_var.set("Ready - Configure settings to start monitoring")
         status_bar = tk.Label(status_frame, textvariable=self.status_var, 
-                             bg='#2a2a2a', fg='#b0b0b0', anchor='w',
+                             bg='#0a0a0a', fg='#b0b0b0', anchor='w',
                              font=('Segoe UI', 9), padx=15, pady=8)
         status_bar.pack(fill=tk.X)
     
@@ -345,7 +345,7 @@ class StarCitizenKillFeedGUI:
         name_frame = ttk.LabelFrame(settings_frame, text="👤 Player Configuration", style='TLabelframe')
         name_frame.pack(fill=tk.X, padx=15, pady=15)
         
-        tk.Label(name_frame, text="Your In-Game Name:", bg='#2a2a2a', fg='#ffffff', 
+        tk.Label(name_frame, text="Your In-Game Name:", bg='#0a0a0a', fg='#ffffff', 
                 font=('Segoe UI', 10, 'bold')).pack(anchor='w', padx=15, pady=(15, 5))
         self.player_name_var = tk.StringVar(value=self.player_name)
         player_entry = ttk.Entry(name_frame, textvariable=self.player_name_var, width=50)
@@ -355,7 +355,7 @@ class StarCitizenKillFeedGUI:
         log_frame = ttk.LabelFrame(settings_frame, text="📁 Log File Configuration", style='TLabelframe')
         log_frame.pack(fill=tk.X, padx=15, pady=15)
         
-        tk.Label(log_frame, text="Star Citizen Game.log Path:", bg='#2a2a2a', fg='#ffffff', 
+        tk.Label(log_frame, text="Star Citizen Game.log Path:", bg='#0a0a0a', fg='#ffffff', 
                 font=('Segoe UI', 10, 'bold')).pack(anchor='w', padx=15, pady=(15, 5))
         
         log_path_frame = ttk.Frame(log_frame)
@@ -403,7 +403,7 @@ class StarCitizenKillFeedGUI:
         export_button.pack(pady=25)
         
         # Export status with modern styling
-        self.export_status = tk.Label(export_frame, text="", bg='#2a2a2a', fg='#00d4ff', 
+        self.export_status = tk.Label(export_frame, text="", bg='#0a0a0a', fg='#0a0a0a', 
                                     font=('Segoe UI', 10), pady=10)
         self.export_status.pack(pady=15)
     
