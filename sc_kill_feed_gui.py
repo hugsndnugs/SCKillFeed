@@ -26,7 +26,6 @@ class StarCitizenKillFeedGUI:
         self.root.title("Star Citizen Kill Feed Tracker")
         self.root.geometry("1400x900")
         self.root.configure(bg='#0a0a0a')
-        self.root.minsize(1200, 800)
         
         # Configuration
         self.config = configparser.ConfigParser()
@@ -199,7 +198,7 @@ class StarCitizenKillFeedGUI:
         title_label.pack(pady=20)
         
         # Subtitle
-        subtitle_label = ttk.Label(header_frame, text="Real-time combat statistics and kill tracking", 
+        subtitle_label = ttk.Label(header_frame, text="Wondering how many kills you get? Let us Ponder it for you!", 
                                   style='Subtitle.TLabel')
         subtitle_label.pack(pady=(0, 20))
         
