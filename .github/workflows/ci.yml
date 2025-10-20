@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  actions: read
+  security-events: write
+  packages: read
+
+jobs:
+  test:
+    name: Run tests (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install runtime requirements
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt || true; fi
+      - name: Run unit tests
+        run: |
+          python -m unittest discover -v
+
+  build-windows:
+    name: Build executable (Windows)
+    runs-on: windows-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install build requirements
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-build.txt
+      - name: Run build script (PowerShell)
+        shell: powershell
+        run: |
+          # Ensure the script is executable and run it
+          .\build.ps1 -entry "sc_kill_feed.py" -name "SCKillFeed" -onefile -OutDir "release" -Clean
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: SCKillFeed-windows-exe
+          path: |
+            release\*.exe
+
+  codeql:
+    name: CodeQL (called workflow)
+    needs: test
+    uses: ./.github/workflows/codeql.yml
+

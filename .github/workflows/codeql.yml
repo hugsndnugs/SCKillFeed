@@ -11,6 +11,8 @@
 #
 name: "CodeQL Advanced"
 
+# Allow this workflow to run standalone on push/PR/schedule and also be invoked
+# as a reusable workflow from other workflows (workflow_call).
 on:
   push:
     branches: [ "main" ]
@@ -18,6 +20,7 @@ on:
     branches: [ "main" ]
   schedule:
     - cron: '25 11 * * 5'
+  workflow_call: {}
 
 jobs:
   analyze:
