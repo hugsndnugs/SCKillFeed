@@ -24,8 +24,8 @@ class StarCitizenKillFeedGUI:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Star Citizen Kill Feed Tracker")
-        self.root.geometry("1200x800")
-        self.root.configure(bg='#1e1e1e')
+        self.root.geometry("1400x900")
+        self.root.configure(bg='#0a0a0a')
         
         # Configuration
         self.config = configparser.ConfigParser()
@@ -83,36 +83,124 @@ class StarCitizenKillFeedGUI:
             self.config.write(f)
     
     def setup_styles(self):
-        """Setup modern dark theme styling"""
+        """Setup modern dark theme styling with contemporary design"""
         style = ttk.Style()
         style.theme_use('clam')
         
-        # Configure colors for dark theme
-        style.configure('TNotebook', background='#2d2d2d', borderwidth=0)
-        style.configure('TNotebook.Tab', background='#3d3d3d', foreground='white', padding=[20, 10])
-        style.map('TNotebook.Tab', background=[('selected', '#4d4d4d')])
+        # Modern color palette
+        colors = {
+            'bg_primary': '#0a0a0a',      # Deep black
+            'bg_secondary': '#0a0a0a',   # Dark gray
+            'bg_tertiary': '#0a0a0a',    # Medium gray
+            'accent_primary': '#00d4ff',  # Cyan blue
+            'accent_secondary': '#ff6b35', # Orange
+            'accent_success': '#00ff88',  # Green
+            'accent_danger': '#ff4757',   # Red
+            'accent_warning': '#ffa502',  # Yellow
+            'text_primary': '#ffffff',    # White
+            'text_secondary': '#b0b0b0',  # Light gray
+            'text_muted': '#808080'       # Medium gray
+        }
         
-        style.configure('TFrame', background='#2d2d2d')
-        style.configure('TLabel', background='#2d2d2d', foreground='white')
-        style.configure('TButton', background='#4d4d4d', foreground='white')
-        style.map('TButton', background=[('active', '#5d5d5d')])
+        # Configure notebook styling
+        style.configure('TNotebook', background=colors['bg_secondary'], borderwidth=0)
+        style.configure('TNotebook.Tab', 
+                       background=colors['bg_tertiary'], 
+                       foreground=colors['text_primary'], 
+                       padding=[25, 15],
+                       font=('Segoe UI', 10, 'bold'))
+        style.map('TNotebook.Tab', 
+                 background=[('selected', colors['accent_primary']),
+                           ('active', colors['bg_tertiary'])])
         
-        style.configure('Treeview', background='#3d3d3d', foreground='white', fieldbackground='#3d3d3d')
-        style.map('Treeview', background=[('selected', '#4d4d4d')])
+        # Configure frames
+        style.configure('TFrame', background=colors['bg_secondary'])
+        style.configure('Card.TFrame', background=colors['bg_tertiary'], relief='flat')
         
-        style.configure('TEntry', background='#3d3d3d', foreground='white', fieldbackground='#3d3d3d')
-        style.configure('TCombobox', background='#3d3d3d', foreground='white', fieldbackground='#3d3d3d')
+        # Configure labels
+        style.configure('TLabel', background=colors['bg_secondary'], foreground=colors['text_primary'])
+        style.configure('Title.TLabel', 
+                       background=colors['bg_secondary'], 
+                       foreground=colors['accent_primary'],
+                       font=('Segoe UI', 24, 'bold'))
+        style.configure('Subtitle.TLabel', 
+                       background=colors['bg_secondary'], 
+                       foreground=colors['text_secondary'],
+                       font=('Segoe UI', 12))
+        
+        # Configure buttons with modern styling
+        style.configure('TButton', 
+                       background=colors['accent_primary'], 
+                       foreground=colors['bg_primary'],
+                       font=('Segoe UI', 10, 'bold'),
+                       padding=[20, 10],
+                       relief='flat')
+        style.map('TButton', 
+                 background=[('active', colors['accent_secondary']),
+                           ('pressed', colors['accent_secondary'])])
+        
+        # Configure success/danger buttons
+        style.configure('Success.TButton', 
+                       background=colors['accent_success'], 
+                       foreground=colors['bg_primary'])
+        style.map('Success.TButton', 
+                 background=[('active', '#00cc6a')])
+        
+        style.configure('Danger.TButton', 
+                       background=colors['accent_danger'], 
+                       foreground=colors['text_primary'])
+        style.map('Danger.TButton', 
+                 background=[('active', '#ff3742')])
+        
+        # Configure treeview with modern styling
+        style.configure('Treeview', 
+                       background=colors['bg_tertiary'], 
+                       foreground=colors['text_primary'], 
+                       fieldbackground=colors['bg_tertiary'],
+                       font=('Segoe UI', 9))
+        style.map('Treeview', background=[('selected', colors['accent_primary'])])
+        
+        # Configure entry fields
+        style.configure('TEntry', 
+                       background=colors['bg_tertiary'], 
+                       foreground=colors['text_primary'], 
+                       fieldbackground=colors['bg_tertiary'],
+                       font=('Segoe UI', 10),
+                       padding=[10, 8])
+        style.configure('TCombobox', 
+                       background=colors['bg_tertiary'], 
+                       foreground=colors['text_primary'], 
+                       fieldbackground=colors['bg_tertiary'])
+        
+        # Configure label frames
+        style.configure('TLabelframe', 
+                       background=colors['bg_secondary'], 
+                       foreground=colors['text_primary'],
+                       font=('Segoe UI', 11, 'bold'))
+        style.configure('TLabelframe.Label', 
+                       background=colors['bg_secondary'], 
+                       foreground=colors['accent_primary'],
+                       font=('Segoe UI', 11, 'bold'))
     
     def setup_ui(self):
-        """Setup the main user interface"""
-        # Main container
+        """Setup the main user interface with modern design"""
+        # Main container with padding
         main_frame = ttk.Frame(self.root)
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
-        # Title
-        title_label = tk.Label(main_frame, text="Star Citizen Kill Feed Tracker", 
-                              font=('Arial', 20, 'bold'), bg='#1e1e1e', fg='#00ff88')
-        title_label.pack(pady=(0, 20))
+        # Header section with modern styling
+        header_frame = ttk.Frame(main_frame, style='Card.TFrame')
+        header_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        # Title with modern typography
+        title_label = ttk.Label(header_frame, text="Star Citizen Kill Feed Tracker", 
+                              style='Title.TLabel')
+        title_label.pack(pady=20)
+        
+        # Subtitle
+        subtitle_label = ttk.Label(header_frame, text="Wondering how many kills you get? Let us Ponder it for you!", 
+                                  style='Subtitle.TLabel')
+        subtitle_label.pack(pady=(0, 20))
         
         # Create notebook for tabs
         self.notebook = ttk.Notebook(main_frame)
@@ -124,170 +212,199 @@ class StarCitizenKillFeedGUI:
         self.create_settings_tab()
         self.create_export_tab()
         
-        # Status bar
+        # Modern status bar
+        status_frame = ttk.Frame(main_frame, style='Card.TFrame')
+        status_frame.pack(fill=tk.X, pady=(15, 0))
+        
         self.status_var = tk.StringVar()
         self.status_var.set("Ready - Configure settings to start monitoring")
-        status_bar = tk.Label(main_frame, textvariable=self.status_var, 
-                             bg='#1e1e1e', fg='white', anchor='w')
-        status_bar.pack(fill=tk.X, pady=(10, 0))
+        status_bar = tk.Label(status_frame, textvariable=self.status_var, 
+                             bg='#0a0a0a', fg='#b0b0b0', anchor='w',
+                             font=('Segoe UI', 9), padx=15, pady=8)
+        status_bar.pack(fill=tk.X)
     
     def create_kill_feed_tab(self):
-        """Create the real-time kill feed tab"""
+        """Create the real-time kill feed tab with modern design"""
         kill_feed_frame = ttk.Frame(self.notebook)
-        self.notebook.add(kill_feed_frame, text="Kill Feed")
+        self.notebook.add(kill_feed_frame, text="🎯 Kill Feed")
         
-        # Control panel
-        control_frame = ttk.Frame(kill_feed_frame)
-        control_frame.pack(fill=tk.X, padx=10, pady=10)
+        # Control panel with modern card design
+        control_frame = ttk.Frame(kill_feed_frame, style='Card.TFrame')
+        control_frame.pack(fill=tk.X, padx=15, pady=15)
         
-        self.start_button = ttk.Button(control_frame, text="Start Monitoring", 
-                                      command=self.toggle_monitoring)
-        self.start_button.pack(side=tk.LEFT, padx=(0, 10))
+        # Button container with better spacing
+        button_frame = ttk.Frame(control_frame)
+        button_frame.pack(side=tk.LEFT, padx=15, pady=15)
         
-        self.clear_button = ttk.Button(control_frame, text="Clear Feed", 
-                                      command=self.clear_kill_feed)
-        self.clear_button.pack(side=tk.LEFT, padx=(0, 10))
+        self.start_button = ttk.Button(button_frame, text="▶ Start Monitoring", 
+                                      command=self.toggle_monitoring, style='Success.TButton')
+        self.start_button.pack(side=tk.LEFT, padx=(0, 15))
         
-        # Player name display
-        self.player_label = tk.Label(control_frame, text=f"Player: {self.player_name}", 
-                                   bg='#2d2d2d', fg='#00ff88', font=('Arial', 10, 'bold'))
-        self.player_label.pack(side=tk.RIGHT)
+        self.clear_button = ttk.Button(button_frame, text="🗑 Clear Feed", 
+                                      command=self.clear_kill_feed, style='Danger.TButton')
+        self.clear_button.pack(side=tk.LEFT, padx=(0, 15))
         
-        # Kill feed display
-        feed_frame = ttk.Frame(kill_feed_frame)
-        feed_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        # Player info with modern styling
+        player_frame = ttk.Frame(control_frame)
+        player_frame.pack(side=tk.RIGHT, padx=15, pady=15)
+        
+        self.player_label = tk.Label(player_frame, text=f"👤 Player: {self.player_name}", 
+                                   bg='#0a0a0a', fg='#00d4ff', 
+                                   font=('Segoe UI', 11, 'bold'), padx=10, pady=5)
+        self.player_label.pack()
+        
+        # Kill feed display with modern styling
+        feed_frame = ttk.Frame(kill_feed_frame, style='Card.TFrame')
+        feed_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        
+        # Feed header
+        feed_header = tk.Label(feed_frame, text="📊 Live Combat Feed", 
+                             bg='#2a2a2a', fg='#00d4ff', 
+                             font=('Segoe UI', 12, 'bold'), pady=10)
+        feed_header.pack(fill=tk.X)
         
         self.kill_feed_text = scrolledtext.ScrolledText(feed_frame, 
-                                                       bg='#1e1e1e', fg='white',
-                                                       font=('Consolas', 10),
-                                                       wrap=tk.WORD)
-        self.kill_feed_text.pack(fill=tk.BOTH, expand=True)
+                                                       bg='#1a1a1a', fg='#ffffff',
+                                                       font=('Consolas', 11),
+                                                       wrap=tk.WORD,
+                                                       padx=15, pady=10,
+                                                       insertbackground='#00d4ff',
+                                                       selectbackground='#00d4ff',
+                                                       selectforeground='#1a1a1a')
+        self.kill_feed_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
         
-        # Configure text tags for coloring
-        self.kill_feed_text.tag_configure("player_kill", foreground="#00ff88")
-        self.kill_feed_text.tag_configure("player_death", foreground="#ff4444")
-        self.kill_feed_text.tag_configure("other_kill", foreground="#ffffff")
-        self.kill_feed_text.tag_configure("weapon", foreground="#4488ff")
-        self.kill_feed_text.tag_configure("timestamp", foreground="#888888")
+        # Configure text tags for modern coloring
+        self.kill_feed_text.tag_configure("player_kill", foreground="#00ff88", font=('Consolas', 11, 'bold'))
+        self.kill_feed_text.tag_configure("player_death", foreground="#ff4757", font=('Consolas', 11, 'bold'))
+        self.kill_feed_text.tag_configure("other_kill", foreground="#b0b0b0")
+        self.kill_feed_text.tag_configure("weapon", foreground="#00d4ff", font=('Consolas', 11, 'italic'))
+        self.kill_feed_text.tag_configure("timestamp", foreground="#808080", font=('Consolas', 10))
     
     def create_statistics_tab(self):
-        """Create the statistics dashboard tab"""
+        """Create the statistics dashboard tab with modern design"""
         stats_frame = ttk.Frame(self.notebook)
-        self.notebook.add(stats_frame, text="Statistics")
+        self.notebook.add(stats_frame, text="📈 Statistics")
         
-        # Main stats grid
+        # Main stats grid with modern layout
         main_stats_frame = ttk.Frame(stats_frame)
-        main_stats_frame.pack(fill=tk.X, padx=10, pady=10)
+        main_stats_frame.pack(fill=tk.X, padx=15, pady=15)
         
-        # K/D Ratio and Streaks
-        kd_frame = ttk.LabelFrame(main_stats_frame, text="Kill/Death Statistics")
-        kd_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
+        # K/D Ratio and Streaks with modern card design
+        kd_frame = ttk.LabelFrame(main_stats_frame, text="⚔️ Combat Statistics", style='TLabelframe')
+        kd_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
         
-        self.kills_label = tk.Label(kd_frame, text="Kills: 0", bg='#2d2d2d', fg='#00ff88', 
-                                   font=('Arial', 14, 'bold'))
-        self.kills_label.pack(pady=5)
+        # Stats container with better spacing
+        stats_container = ttk.Frame(kd_frame)
+        stats_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
-        self.deaths_label = tk.Label(kd_frame, text="Deaths: 0", bg='#2d2d2d', fg='#ff4444', 
-                                    font=('Arial', 14, 'bold'))
-        self.deaths_label.pack(pady=5)
+        self.kills_label = tk.Label(stats_container, text="💀 Kills: 0", bg='#0a0a0a', fg='#00ff88', 
+                                   font=('Segoe UI', 16, 'bold'), pady=8)
+        self.kills_label.pack(fill=tk.X, pady=5)
         
-        self.kd_ratio_label = tk.Label(kd_frame, text="K/D Ratio: 0.00", bg='#2d2d2d', fg='white', 
-                                      font=('Arial', 12))
-        self.kd_ratio_label.pack(pady=5)
+        self.deaths_label = tk.Label(stats_container, text="💀 Deaths: 0", bg='#0a0a0a', fg='#ff4757', 
+                                    font=('Segoe UI', 16, 'bold'), pady=8)
+        self.deaths_label.pack(fill=tk.X, pady=5)
         
-        self.streak_label = tk.Label(kd_frame, text="Current Streak: 0", bg='#2d2d2d', fg='#ffaa00', 
-                                    font=('Arial', 12))
-        self.streak_label.pack(pady=5)
+        self.kd_ratio_label = tk.Label(stats_container, text="📊 K/D Ratio: 0.00", bg='#0a0a0a', fg='#00d4ff', 
+                                      font=('Segoe UI', 14, 'bold'), pady=8)
+        self.kd_ratio_label.pack(fill=tk.X, pady=5)
         
-        # Weapons stats
-        weapons_frame = ttk.LabelFrame(main_stats_frame, text="Weapon Statistics")
-        weapons_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(5, 0))
+        self.streak_label = tk.Label(stats_container, text="🔥 Current Streak: 0", bg='#0a0a0a', fg='#ffa502', 
+                                    font=('Segoe UI', 14, 'bold'), pady=8)
+        self.streak_label.pack(fill=tk.X, pady=5)
+        
+        # Weapons stats with modern design
+        weapons_frame = ttk.LabelFrame(main_stats_frame, text="🔫 Weapon Statistics", style='TLabelframe')
+        weapons_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(10, 0))
         
         self.weapons_tree = ttk.Treeview(weapons_frame, columns=('count',), show='tree headings', height=8)
         self.weapons_tree.heading('#0', text='Weapon')
         self.weapons_tree.heading('count', text='Kills')
         self.weapons_tree.column('#0', width=200)
         self.weapons_tree.column('count', width=80)
-        self.weapons_tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.weapons_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
-        # Recent activity
-        recent_frame = ttk.LabelFrame(stats_frame, text="Recent Activity")
-        recent_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        # Recent activity with modern design
+        recent_frame = ttk.LabelFrame(stats_frame, text="📋 Recent Activity", style='TLabelframe')
+        recent_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
         
         self.recent_tree = ttk.Treeview(recent_frame, columns=('time', 'event'), show='headings', height=10)
         self.recent_tree.heading('time', text='Time')
         self.recent_tree.heading('event', text='Event')
         self.recent_tree.column('time', width=100)
         self.recent_tree.column('event', width=400)
-        self.recent_tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        self.recent_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
     
     def create_settings_tab(self):
-        """Create the settings configuration tab"""
+        """Create the settings configuration tab with modern design"""
         settings_frame = ttk.Frame(self.notebook)
-        self.notebook.add(settings_frame, text="Settings")
+        self.notebook.add(settings_frame, text="⚙️ Settings")
         
-        # Player name setting
-        name_frame = ttk.LabelFrame(settings_frame, text="Player Configuration")
-        name_frame.pack(fill=tk.X, padx=10, pady=10)
+        # Player name setting with modern design
+        name_frame = ttk.LabelFrame(settings_frame, text="👤 Player Configuration", style='TLabelframe')
+        name_frame.pack(fill=tk.X, padx=15, pady=15)
         
-        tk.Label(name_frame, text="Your In-Game Name:", bg='#2d2d2d', fg='white').pack(anchor='w', padx=5, pady=5)
+        tk.Label(name_frame, text="Your In-Game Name:", bg='#0a0a0a', fg='#ffffff', 
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', padx=15, pady=(15, 5))
         self.player_name_var = tk.StringVar(value=self.player_name)
         player_entry = ttk.Entry(name_frame, textvariable=self.player_name_var, width=50)
-        player_entry.pack(fill=tk.X, padx=5, pady=(0, 10))
+        player_entry.pack(fill=tk.X, padx=15, pady=(0, 15))
         
-        # Log file setting
-        log_frame = ttk.LabelFrame(settings_frame, text="Log File Configuration")
-        log_frame.pack(fill=tk.X, padx=10, pady=10)
+        # Log file setting with modern design
+        log_frame = ttk.LabelFrame(settings_frame, text="📁 Log File Configuration", style='TLabelframe')
+        log_frame.pack(fill=tk.X, padx=15, pady=15)
         
-        tk.Label(log_frame, text="Star Citizen Game.log Path:", bg='#2d2d2d', fg='white').pack(anchor='w', padx=5, pady=5)
+        tk.Label(log_frame, text="Star Citizen Game.log Path:", bg='#0a0a0a', fg='#ffffff', 
+                font=('Segoe UI', 10, 'bold')).pack(anchor='w', padx=15, pady=(15, 5))
         
         log_path_frame = ttk.Frame(log_frame)
-        log_path_frame.pack(fill=tk.X, padx=5, pady=(0, 10))
+        log_path_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
         
         self.log_path_var = tk.StringVar(value=self.log_file_path)
         log_entry = ttk.Entry(log_path_frame, textvariable=self.log_path_var)
-        log_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+        log_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 10))
         
-        browse_button = ttk.Button(log_path_frame, text="Browse", command=self.browse_log_file)
+        browse_button = ttk.Button(log_path_frame, text="🔍 Browse", command=self.browse_log_file)
         browse_button.pack(side=tk.RIGHT)
         
-        # Auto-detect button
-        auto_detect_button = ttk.Button(log_frame, text="Auto-detect Game.log", 
-                                       command=self.auto_detect_log)
-        auto_detect_button.pack(pady=5)
+        # Auto-detect button with modern styling
+        auto_detect_button = ttk.Button(log_frame, text="🔍 Auto-detect Game.log", 
+                                       command=self.auto_detect_log, style='TButton')
+        auto_detect_button.pack(pady=15)
         
-        # Save settings button
-        save_button = ttk.Button(settings_frame, text="Save Settings", 
-                                command=self.save_settings)
-        save_button.pack(pady=20)
+        # Save settings button with modern styling
+        save_button = ttk.Button(settings_frame, text="💾 Save Settings", 
+                                command=self.save_settings, style='Success.TButton')
+        save_button.pack(pady=25)
     
     def create_export_tab(self):
-        """Create the data export tab"""
+        """Create the data export tab with modern design"""
         export_frame = ttk.Frame(self.notebook)
-        self.notebook.add(export_frame, text="Export Data")
+        self.notebook.add(export_frame, text="📤 Export Data")
         
-        # Export options
-        options_frame = ttk.LabelFrame(export_frame, text="Export Options")
-        options_frame.pack(fill=tk.X, padx=10, pady=10)
+        # Export options with modern design
+        options_frame = ttk.LabelFrame(export_frame, text="📋 Export Options", style='TLabelframe')
+        options_frame.pack(fill=tk.X, padx=15, pady=15)
         
         self.export_csv_var = tk.BooleanVar(value=True)
-        csv_check = ttk.Checkbutton(options_frame, text="Export as CSV", 
+        csv_check = ttk.Checkbutton(options_frame, text="📊 Export as CSV", 
                                    variable=self.export_csv_var)
-        csv_check.pack(anchor='w', padx=5, pady=5)
+        csv_check.pack(anchor='w', padx=15, pady=10)
         
         self.export_json_var = tk.BooleanVar(value=False)
-        json_check = ttk.Checkbutton(options_frame, text="Export as JSON", 
+        json_check = ttk.Checkbutton(options_frame, text="📄 Export as JSON", 
                                     variable=self.export_json_var)
-        json_check.pack(anchor='w', padx=5, pady=5)
+        json_check.pack(anchor='w', padx=15, pady=10)
         
-        # Export button
-        export_button = ttk.Button(export_frame, text="Export Data", 
-                                  command=self.export_data)
-        export_button.pack(pady=20)
+        # Export button with modern styling
+        export_button = ttk.Button(export_frame, text="📤 Export Data", 
+                                  command=self.export_data, style='Success.TButton')
+        export_button.pack(pady=25)
         
-        # Export status
-        self.export_status = tk.Label(export_frame, text="", bg='#2d2d2d', fg='white')
-        self.export_status.pack(pady=10)
+        # Export status with modern styling
+        self.export_status = tk.Label(export_frame, text="", bg='#0a0a0a', fg='#0a0a0a', 
+                                    font=('Segoe UI', 10), pady=10)
+        self.export_status.pack(pady=15)
     
     def browse_log_file(self):
         """Browse for Star Citizen log file"""
