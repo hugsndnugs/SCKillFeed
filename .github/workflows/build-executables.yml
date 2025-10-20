@@ -1,5 +1,7 @@
 # GitHub Actions workflow to build single-file executables for Linux, macOS and Windows
 # Preview for your fork (entry point: launcher.py)
+permissions:
+  contents: read
 on:
   workflow_dispatch:
   push:
