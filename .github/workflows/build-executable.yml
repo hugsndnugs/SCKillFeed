@@ -1,0 +1,121 @@
+name: Build Executable
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'launcher.py'
+      - 'sc_kill_feed_gui.py'
+      - 'sc_kill_feed.py'
+      - 'requirements.txt'
+      - 'requirements-build.txt'
+      - 'build_sc_kill_feed.spec'
+      - 'version.txt'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'launcher.py'
+      - 'sc_kill_feed_gui.py'
+      - 'sc_kill_feed.py'
+      - 'requirements.txt'
+      - 'requirements-build.txt'
+      - 'build_sc_kill_feed.spec'
+      - 'version.txt'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-build.txt
+        
+    - name: Build executable with PyInstaller
+      run: |
+        pyinstaller build_sc_kill_feed.spec
+        
+    - name: Upload executable artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SCKillFeed-Windows
+        path: dist/SCKillFeed.exe
+        retention-days: 30
+        
+    - name: Create Release (on push to main/master)
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/SCKillFeed.exe
+        tag_name: v${{ github.run_number }}
+        name: Release v${{ github.run_number }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-build.txt
+        
+    - name: Build executable with PyInstaller
+      run: |
+        pyinstaller build_sc_kill_feed.spec
+        
+    - name: Upload executable artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SCKillFeed-Linux
+        path: dist/SCKillFeed
+        retention-days: 30
+
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements-build.txt
+        
+    - name: Build executable with PyInstaller
+      run: |
+        pyinstaller build_sc_kill_feed.spec
+        
+    - name: Upload executable artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SCKillFeed-macOS
+        path: dist/SCKillFeed
+        retention-days: 30
+
