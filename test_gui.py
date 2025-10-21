@@ -59,6 +59,7 @@ def make_stub_gui(player_name='Player1'):
     # Minimal attributes required by methods under test
     g.player_name = player_name
     g.kills_data = []
+    g.data_lock = __import__('threading').RLock()  # Add missing data_lock attribute
     g.stats = {
         'total_kills': 0,
         'total_deaths': 0,
