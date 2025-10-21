@@ -2,6 +2,7 @@
 param(
     [string]$entry = "launcher.py",
     [string]$name = "SCKillFeed",
+    [string]$Icon = "",
     [switch]$onefile,
     [string]$SpecFile = "",
     [string]$OutDir = "release",
@@ -29,7 +30,12 @@ if ($SpecFile -ne "") {
         if ($onefile -or (-not $PSBoundParameters.ContainsKey('onefile'))) { 
             $piArgs += "--onefile" 
         }
-        $piArgs += "--console"
+        $piArgs += "--windowed"
+        # Add icon if provided
+        if ($Icon -ne "") {
+            $piArgs += "--icon"
+            $piArgs += $Icon
+        }
         $piArgs += $entry
     }
 }

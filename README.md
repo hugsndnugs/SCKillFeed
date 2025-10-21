@@ -6,14 +6,14 @@ Building an .exe:
 
 1. Install pyinstaller (or use the provided `build.ps1` on Windows):
 
-```
+```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\build.ps1 (optional: -Clean)
 ```
 
 2. Build using PyInstaller (single-file exe):
 
-```
-pyinstaller --onefile --name sc-kill-parser sc_kill_feed.py 
+```powershell
+pyinstaller --onefile --name sc-kill-parser launcher.py
 ```
 
 CI (GitHub Actions)
