@@ -17,8 +17,39 @@ import csv
 from datetime import datetime
 import configparser
 from typing import Optional, Tuple, Dict, List
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, deque
 import json
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('sc_kill_feed.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Pre-compile regex patterns for better performance
+KILL_LINE_REGEX = re.compile(
+    r"<Actor Death>\s+CActor::Kill:\s*'(?P<victim>[^']+)'\s*\[[^\]]+\]\s*in zone '[^']+'\s*killed by\s*'(?P<killer>[^']+)'\s*\[[^\]]+\]\s*using\s*'(?P<weapon>[^']+)'",
+    re.IGNORECASE,
+)
+
+# Custom exception classes for better error handling
+class KillFeedError(Exception):
+    """Base exception for kill feed errors"""
+    pass
+
+class LogFileError(KillFeedError):
+    """Log file related errors"""
+    pass
+
+class ConfigurationError(KillFeedError):
+    """Configuration related errors"""
+    pass
 
 class StarCitizenKillFeedGUI:
     def __init__(self):
@@ -32,12 +63,27 @@ class StarCitizenKillFeedGUI:
         self.config_path = self.get_config_path()
         self.load_config()
         
-        # Data storage
-        self.kills_data = []
+        # Data storage - Use deque with maxlen to prevent memory leaks
+        self.kills_data = deque(maxlen=10000)  # Keep only last 10,000 events
+        self.data_lock = threading.RLock()  # Thread-safe access to shared data
+        
+        # Memory management settings
+        self.MAX_STATISTICS_ENTRIES = 1000  # Limit individual statistic counters
         self.player_name = self.config.get('user', 'ingame_name', fallback='')
         self.log_file_path = self.config.get('user', 'log_path', fallback='')
         self.is_monitoring = False
         self.monitor_thread = None
+        
+        # Performance settings
+        self.FILE_CHECK_INTERVAL = 0.1  # Reduced from 0.2 seconds
+        self.MAX_LINES_PER_CHECK = 100  # Process up to 100 lines at once for better performance
+        self.READ_BUFFER_SIZE = 8192    # Buffer size for reading file content
+        
+        # UI update debouncing and thread safety
+        self._update_timer = None
+        self._pending_updates = 0
+        self._ui_update_lock = threading.Lock()
+        self._last_update_time = 0
         
         # Statistics
         self.stats = {
@@ -53,11 +99,8 @@ class StarCitizenKillFeedGUI:
             'killers': Counter()
         }
         
-        # Regex for parsing kill events
-        self.KILL_LINE_RE = re.compile(
-            r"<Actor Death>\s+CActor::Kill:\s*'(?P<victim>[^']+)'\s*\[[^\]]+\]\s*in zone '[^']+'\s*killed by\s*'(?P<killer>[^']+)'\s*\[[^\]]+\]\s*using\s*'(?P<weapon>[^']+)'",
-            re.IGNORECASE,
-        )
+        # Regex for parsing kill events - compiled once for efficiency
+        self.KILL_LINE_RE = KILL_LINE_REGEX
         
         self.setup_ui()
         self.setup_styles()
@@ -70,17 +113,187 @@ class StarCitizenKillFeedGUI:
             exe_dir = os.path.dirname(os.path.abspath(__file__))
         return os.path.join(exe_dir, 'sc-kill-feed.cfg')
     
+    def validate_file_path(self, file_path: str) -> bool:
+        """Validate file path to prevent directory traversal attacks"""
+        if not file_path or not isinstance(file_path, str):
+            logger.warning("Invalid file path: empty or not a string")
+            return False
+        
+        try:
+            # Sanitize input by stripping whitespace
+            file_path = file_path.strip()
+            
+            # Check for minimum length
+            if len(file_path) < 3:
+                logger.warning("File path too short")
+                return False
+            
+            # Check if path contains suspicious patterns
+            suspicious_patterns = ['..', '~', '$', '`', '|', '&', ';', '(', ')', '<', '>']
+            for pattern in suspicious_patterns:
+                if pattern in file_path:
+                    logger.warning(f"Suspicious pattern '{pattern}' found in file path")
+                    return False
+            
+            # Normalize the path to prevent directory traversal
+            normalized_path = os.path.normpath(file_path)
+            resolved_path = os.path.abspath(normalized_path)
+            
+            # Check if the resolved path is still within reasonable bounds
+            if len(resolved_path) > 260:  # Windows path length limit
+                logger.warning("File path too long")
+                return False
+            
+            # Check if file exists and is a .log file
+            if not os.path.exists(resolved_path):
+                logger.warning(f"File does not exist: {resolved_path}")
+                return False
+            
+            if not resolved_path.lower().endswith('.log'):
+                logger.warning("File is not a .log file")
+                return False
+            
+            # Check if it's actually a file (not a directory)
+            if not os.path.isfile(resolved_path):
+                logger.warning("Path is not a file")
+                return False
+            
+            # Check file size (warn if extremely large)
+            file_size = os.path.getsize(resolved_path)
+            if file_size > 100 * 1024 * 1024:  # 100MB
+                logger.warning(f"Log file is very large: {file_size / (1024*1024):.1f}MB")
+            
+            logger.debug(f"File path validated successfully: {resolved_path}")
+            return True
+            
+        except (OSError, ValueError) as e:
+            logger.error(f"Error validating file path: {e}")
+            return False
+    
+    def validate_player_name(self, player_name: str) -> bool:
+        """Validate player name input"""
+        if not player_name or not isinstance(player_name, str):
+            logger.warning("Invalid player name: empty or not a string")
+            return False
+        
+        # Sanitize input
+        player_name = player_name.strip()
+        
+        # Check length
+        if len(player_name) < 1 or len(player_name) > 50:
+            logger.warning(f"Player name length invalid: {len(player_name)}")
+            return False
+        
+        # Check for suspicious characters
+        suspicious_chars = ['<', '>', '&', '"', "'", '\\', '/', '|', ';', '`', '$']
+        for char in suspicious_chars:
+            if char in player_name:
+                logger.warning(f"Suspicious character '{char}' found in player name")
+                return False
+        
+        logger.debug(f"Player name validated successfully: {player_name}")
+        return True
+    
     def load_config(self):
-        """Load configuration from file"""
+        """Load configuration from file with validation and defaults"""
         if os.path.exists(self.config_path):
-            self.config.read(self.config_path)
+            try:
+                self.config.read(self.config_path)
+                logger.info("Configuration loaded successfully")
+            except Exception as e:
+                logger.error(f"Error loading configuration: {e}")
+                self.config.clear()
+        
+        # Ensure required sections exist
         if 'user' not in self.config:
             self.config['user'] = {}
+        
+        # Set default values if not present
+        defaults = {
+            'user': {
+                'ingame_name': '',
+                'log_path': '',
+                'file_check_interval': '0.1',
+                'max_lines_per_check': '100',
+                'max_statistics_entries': '1000'
+            }
+        }
+        
+        for section, options in defaults.items():
+            if section not in self.config:
+                self.config[section] = {}
+            for key, value in options.items():
+                if key not in self.config[section]:
+                    self.config[section][key] = value
+                    logger.debug(f"Set default value for {section}.{key}: {value}")
+        
+        # Validate and fix configuration values
+        self.validate_config()
+    
+    def validate_config(self):
+        """Validate configuration values and fix invalid ones"""
+        try:
+            # Validate file check interval
+            try:
+                interval = float(self.config.get('user', 'file_check_interval', '0.1'))
+                if interval < 0.01 or interval > 1.0:
+                    logger.warning(f"Invalid file_check_interval: {interval}, setting to default 0.1")
+                    self.config['user']['file_check_interval'] = '0.1'
+                    self.FILE_CHECK_INTERVAL = 0.1
+                else:
+                    self.FILE_CHECK_INTERVAL = interval
+            except ValueError:
+                logger.warning("Invalid file_check_interval format, setting to default 0.1")
+                self.config['user']['file_check_interval'] = '0.1'
+                self.FILE_CHECK_INTERVAL = 0.1
+            
+            # Validate max lines per check
+            try:
+                max_lines = int(self.config.get('user', 'max_lines_per_check', '100'))
+                if max_lines < 1 or max_lines > 1000:
+                    logger.warning(f"Invalid max_lines_per_check: {max_lines}, setting to default 100")
+                    self.config['user']['max_lines_per_check'] = '100'
+                    self.MAX_LINES_PER_CHECK = 100
+                else:
+                    self.MAX_LINES_PER_CHECK = max_lines
+            except ValueError:
+                logger.warning("Invalid max_lines_per_check format, setting to default 100")
+                self.config['user']['max_lines_per_check'] = '100'
+                self.MAX_LINES_PER_CHECK = 100
+            
+            # Validate max statistics entries
+            try:
+                max_stats = int(self.config.get('user', 'max_statistics_entries', '1000'))
+                if max_stats < 100 or max_stats > 10000:
+                    logger.warning(f"Invalid max_statistics_entries: {max_stats}, setting to default 1000")
+                    self.config['user']['max_statistics_entries'] = '1000'
+                    self.MAX_STATISTICS_ENTRIES = 1000
+                else:
+                    self.MAX_STATISTICS_ENTRIES = max_stats
+            except ValueError:
+                logger.warning("Invalid max_statistics_entries format, setting to default 1000")
+                self.config['user']['max_statistics_entries'] = '1000'
+                self.MAX_STATISTICS_ENTRIES = 1000
+            
+            logger.debug("Configuration validation completed")
+            
+        except Exception as e:
+            logger.error(f"Error validating configuration: {e}", exc_info=True)
     
     def save_config(self):
-        """Save configuration to file"""
-        with open(self.config_path, 'w') as f:
-            self.config.write(f)
+        """Save configuration to file with error handling"""
+        try:
+            # Create directory if it doesn't exist
+            config_dir = os.path.dirname(self.config_path)
+            if config_dir and not os.path.exists(config_dir):
+                os.makedirs(config_dir, exist_ok=True)
+            
+            with open(self.config_path, 'w') as f:
+                self.config.write(f)
+            logger.info("Configuration saved successfully")
+        except Exception as e:
+            logger.error(f"Error saving configuration: {e}", exc_info=True)
+            raise ConfigurationError(f"Failed to save configuration: {e}")
     
     def setup_styles(self):
         """Setup modern dark theme styling with contemporary design"""
@@ -432,17 +645,23 @@ class StarCitizenKillFeedGUI:
         messagebox.showwarning("Auto-detect", "Could not auto-detect Game.log file.\nPlease browse manually.")
     
     def save_settings(self):
-        """Save current settings"""
-        self.player_name = self.player_name_var.get().strip()
-        self.log_file_path = self.log_path_var.get().strip()
+        """Save current settings with improved validation"""
+        player_name = self.player_name_var.get().strip()
+        log_file_path = self.log_path_var.get().strip()
         
-        if not self.player_name:
-            messagebox.showerror("Error", "Please enter your in-game name.")
+        # Validate player name
+        if not self.validate_player_name(player_name):
+            messagebox.showerror("Error", "Please enter a valid in-game name (1-50 characters, no special characters).")
             return
         
-        if not self.log_file_path or not os.path.exists(self.log_file_path):
-            messagebox.showerror("Error", "Please select a valid Game.log file.")
+        # Validate log file path
+        if not self.validate_file_path(log_file_path):
+            messagebox.showerror("Error", "Please select a valid Game.log file. The file must exist and be a .log file.")
             return
+        
+        # Update instance variables
+        self.player_name = player_name
+        self.log_file_path = log_file_path
         
         # Update config
         self.config['user']['ingame_name'] = self.player_name
@@ -461,8 +680,8 @@ class StarCitizenKillFeedGUI:
             messagebox.showerror("Error", "Please configure your settings first.")
             return
         
-        if not os.path.exists(self.log_file_path):
-            messagebox.showerror("Error", "Game.log file not found. Please check the path.")
+        if not self.validate_file_path(self.log_file_path):
+            messagebox.showerror("Error", "Game.log file not found or invalid. Please check the path.")
             return
         
         if self.is_monitoring:
@@ -487,46 +706,158 @@ class StarCitizenKillFeedGUI:
         self.status_var.set("Monitoring stopped")
     
     def monitor_log_file(self):
-        """Monitor the log file for kill events"""
+        """Monitor the log file for kill events with improved performance and error recovery"""
+        logger.info(f"Starting log file monitoring: {self.log_file_path}")
+        
         try:
-            with open(self.log_file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            with open(self.log_file_path, 'r', encoding='utf-8', errors='ignore', buffering=self.READ_BUFFER_SIZE) as f:
                 f.seek(0, os.SEEK_END)
+                last_position = f.tell()
+                consecutive_errors = 0
+                max_consecutive_errors = 5
+                
                 while self.is_monitoring:
-                    line = f.readline()
-                    if not line:
-                        time.sleep(0.2)
-                        continue
-                    
-                    if '<Actor Death>' in line:
-                        self.process_kill_event(line.strip())
+                    try:
+                        # Check if file has grown
+                        current_position = f.tell()
+                        if current_position < last_position:
+                            # File was truncated, reset to end
+                            logger.info("Log file was truncated, resetting to end")
+                            f.seek(0, os.SEEK_END)
+                            last_position = f.tell()
+                        elif current_position > last_position:
+                            # File has new content, read it efficiently
+                            f.seek(last_position)
+                            lines_read = 0
+                            lines_buffer = []
+                            
+                            # Read multiple lines at once for better performance
+                            while lines_read < self.MAX_LINES_PER_CHECK and self.is_monitoring:
+                                line = f.readline()
+                                if not line:
+                                    break
+                                
+                                lines_buffer.append(line)
+                                lines_read += 1
+                            
+                            # Process all buffered lines
+                            for line in lines_buffer:
+                                if '<Actor Death>' in line:
+                                    self.process_kill_event(line.strip())
+                            
+                            last_position = f.tell()
+                            consecutive_errors = 0  # Reset error counter on success
+                        else:
+                            # No new content, sleep briefly
+                            time.sleep(self.FILE_CHECK_INTERVAL)
+                            
+                    except (OSError, IOError) as e:
+                        consecutive_errors += 1
+                        logger.warning(f"File access error (attempt {consecutive_errors}): {e}")
+                        
+                        if consecutive_errors >= max_consecutive_errors:
+                            logger.error(f"Too many consecutive file access errors, stopping monitoring")
+                            self.root.after(0, lambda: self.status_var.set(f"Too many file access errors, monitoring stopped"))
+                            break
+                        
+                        # Wait longer before retrying
+                        time.sleep(self.FILE_CHECK_INTERVAL * 5)
+                        
+        except FileNotFoundError as e:
+            error_msg = f"Log file not found: {str(e)}"
+            logger.error(error_msg)
+            self.root.after(0, lambda: self.status_var.set(error_msg))
+        except PermissionError as e:
+            error_msg = f"Permission denied accessing log file: {str(e)}"
+            logger.error(error_msg)
+            self.root.after(0, lambda: self.status_var.set(error_msg))
+        except UnicodeDecodeError as e:
+            error_msg = f"Error reading log file encoding: {str(e)}"
+            logger.error(error_msg)
+            self.root.after(0, lambda: self.status_var.set(error_msg))
         except Exception as e:
-            self.root.after(0, lambda: self.status_var.set(f"Error monitoring file: {str(e)}"))
+            error_msg = f"Unexpected error monitoring file: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            self.root.after(0, lambda: self.status_var.set(error_msg))
+        finally:
+            logger.info("Log file monitoring stopped")
+    
+    def limit_statistics_size(self):
+        """Limit the size of statistics counters to prevent memory leaks"""
+        try:
+            # Limit weapons_used counter
+            if len(self.stats['weapons_used']) > self.MAX_STATISTICS_ENTRIES:
+                # Keep only the most common weapons
+                most_common = self.stats['weapons_used'].most_common(self.MAX_STATISTICS_ENTRIES)
+                self.stats['weapons_used'].clear()
+                for weapon, count in most_common:
+                    self.stats['weapons_used'][weapon] = count
+            
+            # Limit weapons_against counter
+            if len(self.stats['weapons_against']) > self.MAX_STATISTICS_ENTRIES:
+                most_common = self.stats['weapons_against'].most_common(self.MAX_STATISTICS_ENTRIES)
+                self.stats['weapons_against'].clear()
+                for weapon, count in most_common:
+                    self.stats['weapons_against'][weapon] = count
+            
+            # Limit victims counter
+            if len(self.stats['victims']) > self.MAX_STATISTICS_ENTRIES:
+                most_common = self.stats['victims'].most_common(self.MAX_STATISTICS_ENTRIES)
+                self.stats['victims'].clear()
+                for victim, count in most_common:
+                    self.stats['victims'][victim] = count
+            
+            # Limit killers counter
+            if len(self.stats['killers']) > self.MAX_STATISTICS_ENTRIES:
+                most_common = self.stats['killers'].most_common(self.MAX_STATISTICS_ENTRIES)
+                self.stats['killers'].clear()
+                for killer, count in most_common:
+                    self.stats['killers'][killer] = count
+            
+            logger.debug("Statistics counters size limited to prevent memory leaks")
+            
+        except Exception as e:
+            logger.error(f"Error limiting statistics size: {e}", exc_info=True)
     
     def process_kill_event(self, line: str):
-        """Process a kill event line"""
-        match = self.KILL_LINE_RE.search(line)
-        if not match:
-            return
-        
-        victim = match.group('victim')
-        killer = match.group('killer')
-        weapon = match.group('weapon')
-        timestamp = datetime.now()
-        
-        # Store kill data
-        kill_data = {
-            'timestamp': timestamp,
-            'victim': victim,
-            'killer': killer,
-            'weapon': weapon
-        }
-        self.kills_data.append(kill_data)
-        
-        # Update statistics
-        self.update_statistics(kill_data)
-        
-        # Update UI in main thread
-        self.root.after(0, lambda: self.display_kill_event(kill_data))
+        """Process a kill event line with improved error handling"""
+        try:
+            match = self.KILL_LINE_RE.search(line)
+            if not match:
+                return
+            
+            victim = match.group('victim').strip()
+            killer = match.group('killer').strip()
+            weapon = match.group('weapon').strip()
+            
+            # Validate extracted data
+            if not all([victim, killer, weapon]):
+                logger.warning(f"Invalid kill event data - victim: '{victim}', killer: '{killer}', weapon: '{weapon}'")
+                return
+            
+            timestamp = datetime.now()
+            
+            # Store kill data
+            kill_data = {
+                'timestamp': timestamp,
+                'victim': victim,
+                'killer': killer,
+                'weapon': weapon
+            }
+            
+            # Thread-safe data access
+            with self.data_lock:
+                self.kills_data.append(kill_data)
+                self.update_statistics(kill_data)
+            
+            # Update UI in main thread with debouncing and thread safety
+            self.root.after_idle(lambda: self.display_kill_event(kill_data))
+            self.debounced_update_statistics()
+            
+            logger.debug(f"Processed kill event: {killer} killed {victim} with {weapon}")
+            
+        except Exception as e:
+            logger.error(f"Error processing kill event line: {line[:100]}... Error: {e}", exc_info=True)
     
     def update_statistics(self, kill_data):
         """Update statistics based on kill data"""
@@ -539,6 +870,12 @@ class StarCitizenKillFeedGUI:
         self.stats['weapons_against'][weapon] += 1
         self.stats['victims'][victim] += 1
         self.stats['killers'][killer] += 1
+        
+        # Periodically limit statistics size to prevent memory leaks
+        total_entries = (len(self.stats['weapons_used']) + len(self.stats['weapons_against']) + 
+                        len(self.stats['victims']) + len(self.stats['killers']))
+        if total_entries % 100 == 0:  # Check every 100 entries
+            self.limit_statistics_size()
         
         # Handle suicides first
         if killer == victim:
@@ -593,35 +930,51 @@ class StarCitizenKillFeedGUI:
         self.kill_feed_text.insert(tk.END, event_text, tags)
         self.kill_feed_text.see(tk.END)
         
-        # Update statistics display
-        self.update_statistics_display()
+        # Update statistics display (removed immediate update - now debounced)
     
     def update_statistics_display(self):
-        """Update the statistics display"""
+        """Update the statistics display with improved thread safety"""
+        # Thread-safe data access with deep copy to prevent race conditions
+        with self.data_lock:
+            # Create deep copies to avoid holding lock during UI updates
+            stats_copy = {
+                'total_kills': self.stats['total_kills'],
+                'total_deaths': self.stats['total_deaths'],
+                'kill_streak': self.stats['kill_streak'],
+                'death_streak': self.stats['death_streak'],
+                'max_kill_streak': self.stats['max_kill_streak'],
+                'max_death_streak': self.stats['max_death_streak'],
+                'weapons_used': self.stats['weapons_used'].copy(),
+                'weapons_against': self.stats['weapons_against'].copy(),
+                'victims': self.stats['victims'].copy(),
+                'killers': self.stats['killers'].copy()
+            }
+            recent_kills = list(self.kills_data)[-10:]  # Convert deque to list for slicing
+        
         # Update main stats
-        self.kills_label.config(text=f"Kills: {self.stats['total_kills']}")
-        self.deaths_label.config(text=f"Deaths: {self.stats['total_deaths']}")
+        self.kills_label.config(text=f"Kills: {stats_copy['total_kills']}")
+        self.deaths_label.config(text=f"Deaths: {stats_copy['total_deaths']}")
         
         # Calculate K/D ratio
-        if self.stats['total_deaths'] > 0:
-            kd_ratio = self.stats['total_kills'] / self.stats['total_deaths']
+        if stats_copy['total_deaths'] > 0:
+            kd_ratio = stats_copy['total_kills'] / stats_copy['total_deaths']
         else:
-            kd_ratio = self.stats['total_kills'] if self.stats['total_kills'] > 0 else 0
+            kd_ratio = stats_copy['total_kills'] if stats_copy['total_kills'] > 0 else 0
         
         self.kd_ratio_label.config(text=f"K/D Ratio: {kd_ratio:.2f}")
         
         # Current streak
-        current_streak = self.stats['kill_streak'] if self.stats['kill_streak'] > 0 else -self.stats['death_streak']
+        current_streak = stats_copy['kill_streak'] if stats_copy['kill_streak'] > 0 else -stats_copy['death_streak']
         self.streak_label.config(text=f"Current Streak: {current_streak}")
         
         # Update weapons tree
         self.weapons_tree.delete(*self.weapons_tree.get_children())
-        for weapon, count in self.stats['weapons_used'].most_common(10):
+        for weapon, count in stats_copy['weapons_used'].most_common(10):
             self.weapons_tree.insert('', 'end', text=weapon, values=(count,))
         
         # Update recent activity
         self.recent_tree.delete(*self.recent_tree.get_children())
-        for kill in self.kills_data[-10:]:  # Show last 10 events
+        for kill in recent_kills:  # Show last 10 events
             time_str = kill['timestamp'].strftime('%H:%M:%S')
             if kill['killer'] == kill['victim']:
                 if kill['killer'] == self.player_name:
@@ -637,10 +990,33 @@ class StarCitizenKillFeedGUI:
             
             self.recent_tree.insert('', 'end', values=(time_str, event))
     
+    def debounced_update_statistics(self):
+        """Debounced statistics update to prevent excessive UI updates with thread safety"""
+        with self._ui_update_lock:
+            self._pending_updates += 1
+            current_time = time.time()
+            
+            # Cancel previous timer if it exists
+            if self._update_timer:
+                self.root.after_cancel(self._update_timer)
+            
+            # Schedule update after 100ms delay, but ensure we don't update too frequently
+            delay = max(50, 100 - int((current_time - self._last_update_time) * 1000))
+            self._update_timer = self.root.after(delay, self._perform_statistics_update)
+    
+    def _perform_statistics_update(self):
+        """Actually perform the statistics update with thread safety"""
+        with self._ui_update_lock:
+            if self._pending_updates > 0:
+                self.update_statistics_display()
+                self._pending_updates = 0
+                self._last_update_time = time.time()
+            self._update_timer = None
+    
     def clear_kill_feed(self):
         """Clear the kill feed display"""
         self.kill_feed_text.delete(1.0, tk.END)
-        self.kills_data.clear()
+        self.kills_data.clear()  # deque.clear() works the same as list.clear()
         self.stats = {
             'total_kills': 0,
             'total_deaths': 0,
@@ -699,6 +1075,12 @@ class StarCitizenKillFeedGUI:
             self.export_status.config(text=f"Data exported successfully to {file_path}")
             messagebox.showinfo("Success", "Data exported successfully!")
             
+        except FileNotFoundError as e:
+            messagebox.showerror("Error", f"Export directory not found: {str(e)}")
+        except PermissionError as e:
+            messagebox.showerror("Error", f"Permission denied writing export file: {str(e)}")
+        except UnicodeEncodeError as e:
+            messagebox.showerror("Error", f"Error encoding export data: {str(e)}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to export data: {str(e)}")
     
