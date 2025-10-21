@@ -17,8 +17,21 @@ import csv
 from datetime import datetime
 import configparser
 from typing import Optional, Tuple, Dict, List
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, deque
 import json
+
+# Custom exception classes for better error handling
+class KillFeedError(Exception):
+    """Base exception for kill feed errors"""
+    pass
+
+class LogFileError(KillFeedError):
+    """Log file related errors"""
+    pass
+
+class ConfigurationError(KillFeedError):
+    """Configuration related errors"""
+    pass
 
 class StarCitizenKillFeedGUI:
     def __init__(self):
@@ -32,12 +45,21 @@ class StarCitizenKillFeedGUI:
         self.config_path = self.get_config_path()
         self.load_config()
         
-        # Data storage
-        self.kills_data = []
+        # Data storage - Use deque with maxlen to prevent memory leaks
+        self.kills_data = deque(maxlen=10000)  # Keep only last 10,000 events
+        self.data_lock = threading.RLock()  # Thread-safe access to shared data
         self.player_name = self.config.get('user', 'ingame_name', fallback='')
         self.log_file_path = self.config.get('user', 'log_path', fallback='')
         self.is_monitoring = False
         self.monitor_thread = None
+        
+        # Performance settings
+        self.FILE_CHECK_INTERVAL = 0.1  # Reduced from 0.2 seconds
+        self.MAX_LINES_PER_CHECK = 50   # Process up to 50 lines at once
+        
+        # UI update debouncing
+        self._update_timer = None
+        self._pending_updates = 0
         
         # Statistics
         self.stats = {
@@ -69,6 +91,33 @@ class StarCitizenKillFeedGUI:
         else:
             exe_dir = os.path.dirname(os.path.abspath(__file__))
         return os.path.join(exe_dir, 'sc-kill-feed.cfg')
+    
+    def validate_file_path(self, file_path: str) -> bool:
+        """Validate file path to prevent directory traversal attacks"""
+        if not file_path or not isinstance(file_path, str):
+            return False
+        
+        try:
+            # Normalize the path to prevent directory traversal
+            normalized_path = os.path.normpath(file_path)
+            resolved_path = os.path.abspath(normalized_path)
+            
+            # Check if file exists and is a .log file
+            if not os.path.exists(resolved_path):
+                return False
+            
+            if not resolved_path.lower().endswith('.log'):
+                return False
+            
+            # Check if path contains suspicious patterns
+            suspicious_patterns = ['..', '~', '$', '`']
+            for pattern in suspicious_patterns:
+                if pattern in file_path:
+                    return False
+            
+            return True
+        except (OSError, ValueError):
+            return False
     
     def load_config(self):
         """Load configuration from file"""
@@ -440,8 +489,8 @@ class StarCitizenKillFeedGUI:
             messagebox.showerror("Error", "Please enter your in-game name.")
             return
         
-        if not self.log_file_path or not os.path.exists(self.log_file_path):
-            messagebox.showerror("Error", "Please select a valid Game.log file.")
+        if not self.validate_file_path(self.log_file_path):
+            messagebox.showerror("Error", "Please select a valid Game.log file. The file must exist and be a .log file.")
             return
         
         # Update config
@@ -461,8 +510,8 @@ class StarCitizenKillFeedGUI:
             messagebox.showerror("Error", "Please configure your settings first.")
             return
         
-        if not os.path.exists(self.log_file_path):
-            messagebox.showerror("Error", "Game.log file not found. Please check the path.")
+        if not self.validate_file_path(self.log_file_path):
+            messagebox.showerror("Error", "Game.log file not found or invalid. Please check the path.")
             return
         
         if self.is_monitoring:
@@ -487,20 +536,47 @@ class StarCitizenKillFeedGUI:
         self.status_var.set("Monitoring stopped")
     
     def monitor_log_file(self):
-        """Monitor the log file for kill events"""
+        """Monitor the log file for kill events with improved performance"""
         try:
             with open(self.log_file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 f.seek(0, os.SEEK_END)
+                last_position = f.tell()
+                
                 while self.is_monitoring:
-                    line = f.readline()
-                    if not line:
-                        time.sleep(0.2)
-                        continue
-                    
-                    if '<Actor Death>' in line:
-                        self.process_kill_event(line.strip())
+                    # Check if file has grown
+                    current_position = f.tell()
+                    if current_position < last_position:
+                        # File was truncated, reset to end
+                        f.seek(0, os.SEEK_END)
+                        last_position = f.tell()
+                    elif current_position > last_position:
+                        # File has new content, read it
+                        f.seek(last_position)
+                        lines_read = 0
+                        
+                        # Process multiple lines at once for better performance
+                        while lines_read < self.MAX_LINES_PER_CHECK and self.is_monitoring:
+                            line = f.readline()
+                            if not line:
+                                break
+                            
+                            lines_read += 1
+                            if '<Actor Death>' in line:
+                                self.process_kill_event(line.strip())
+                        
+                        last_position = f.tell()
+                    else:
+                        # No new content, sleep briefly
+                        time.sleep(self.FILE_CHECK_INTERVAL)
+                        
+        except FileNotFoundError as e:
+            self.root.after(0, lambda: self.status_var.set(f"Log file not found: {str(e)}"))
+        except PermissionError as e:
+            self.root.after(0, lambda: self.status_var.set(f"Permission denied accessing log file: {str(e)}"))
+        except UnicodeDecodeError as e:
+            self.root.after(0, lambda: self.status_var.set(f"Error reading log file encoding: {str(e)}"))
         except Exception as e:
-            self.root.after(0, lambda: self.status_var.set(f"Error monitoring file: {str(e)}"))
+            self.root.after(0, lambda: self.status_var.set(f"Unexpected error monitoring file: {str(e)}"))
     
     def process_kill_event(self, line: str):
         """Process a kill event line"""
@@ -520,13 +596,15 @@ class StarCitizenKillFeedGUI:
             'killer': killer,
             'weapon': weapon
         }
-        self.kills_data.append(kill_data)
         
-        # Update statistics
-        self.update_statistics(kill_data)
+        # Thread-safe data access
+        with self.data_lock:
+            self.kills_data.append(kill_data)
+            self.update_statistics(kill_data)
         
-        # Update UI in main thread
+        # Update UI in main thread with debouncing
         self.root.after(0, lambda: self.display_kill_event(kill_data))
+        self.debounced_update_statistics()
     
     def update_statistics(self, kill_data):
         """Update statistics based on kill data"""
@@ -593,35 +671,40 @@ class StarCitizenKillFeedGUI:
         self.kill_feed_text.insert(tk.END, event_text, tags)
         self.kill_feed_text.see(tk.END)
         
-        # Update statistics display
-        self.update_statistics_display()
+        # Update statistics display (removed immediate update - now debounced)
     
     def update_statistics_display(self):
         """Update the statistics display"""
+        # Thread-safe data access
+        with self.data_lock:
+            # Create copies to avoid holding lock during UI updates
+            stats_copy = self.stats.copy()
+            recent_kills = list(self.kills_data)[-10:]  # Convert deque to list for slicing
+        
         # Update main stats
-        self.kills_label.config(text=f"Kills: {self.stats['total_kills']}")
-        self.deaths_label.config(text=f"Deaths: {self.stats['total_deaths']}")
+        self.kills_label.config(text=f"Kills: {stats_copy['total_kills']}")
+        self.deaths_label.config(text=f"Deaths: {stats_copy['total_deaths']}")
         
         # Calculate K/D ratio
-        if self.stats['total_deaths'] > 0:
-            kd_ratio = self.stats['total_kills'] / self.stats['total_deaths']
+        if stats_copy['total_deaths'] > 0:
+            kd_ratio = stats_copy['total_kills'] / stats_copy['total_deaths']
         else:
-            kd_ratio = self.stats['total_kills'] if self.stats['total_kills'] > 0 else 0
+            kd_ratio = stats_copy['total_kills'] if stats_copy['total_kills'] > 0 else 0
         
         self.kd_ratio_label.config(text=f"K/D Ratio: {kd_ratio:.2f}")
         
         # Current streak
-        current_streak = self.stats['kill_streak'] if self.stats['kill_streak'] > 0 else -self.stats['death_streak']
+        current_streak = stats_copy['kill_streak'] if stats_copy['kill_streak'] > 0 else -stats_copy['death_streak']
         self.streak_label.config(text=f"Current Streak: {current_streak}")
         
         # Update weapons tree
         self.weapons_tree.delete(*self.weapons_tree.get_children())
-        for weapon, count in self.stats['weapons_used'].most_common(10):
+        for weapon, count in stats_copy['weapons_used'].most_common(10):
             self.weapons_tree.insert('', 'end', text=weapon, values=(count,))
         
         # Update recent activity
         self.recent_tree.delete(*self.recent_tree.get_children())
-        for kill in self.kills_data[-10:]:  # Show last 10 events
+        for kill in recent_kills:  # Show last 10 events
             time_str = kill['timestamp'].strftime('%H:%M:%S')
             if kill['killer'] == kill['victim']:
                 if kill['killer'] == self.player_name:
@@ -637,10 +720,28 @@ class StarCitizenKillFeedGUI:
             
             self.recent_tree.insert('', 'end', values=(time_str, event))
     
+    def debounced_update_statistics(self):
+        """Debounced statistics update to prevent excessive UI updates"""
+        self._pending_updates += 1
+        
+        # Cancel previous timer if it exists
+        if self._update_timer:
+            self.root.after_cancel(self._update_timer)
+        
+        # Schedule update after 100ms delay
+        self._update_timer = self.root.after(100, self._perform_statistics_update)
+    
+    def _perform_statistics_update(self):
+        """Actually perform the statistics update"""
+        if self._pending_updates > 0:
+            self.update_statistics_display()
+            self._pending_updates = 0
+        self._update_timer = None
+    
     def clear_kill_feed(self):
         """Clear the kill feed display"""
         self.kill_feed_text.delete(1.0, tk.END)
-        self.kills_data.clear()
+        self.kills_data.clear()  # deque.clear() works the same as list.clear()
         self.stats = {
             'total_kills': 0,
             'total_deaths': 0,
@@ -699,6 +800,12 @@ class StarCitizenKillFeedGUI:
             self.export_status.config(text=f"Data exported successfully to {file_path}")
             messagebox.showinfo("Success", "Data exported successfully!")
             
+        except FileNotFoundError as e:
+            messagebox.showerror("Error", f"Export directory not found: {str(e)}")
+        except PermissionError as e:
+            messagebox.showerror("Error", f"Permission denied writing export file: {str(e)}")
+        except UnicodeEncodeError as e:
+            messagebox.showerror("Error", f"Error encoding export data: {str(e)}")
         except Exception as e:
             messagebox.showerror("Error", f"Failed to export data: {str(e)}")
     
@@ -752,4 +859,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 
