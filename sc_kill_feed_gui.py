@@ -104,6 +104,32 @@ class StarCitizenKillFeedGUI:
         
         self.setup_ui()
         self.setup_styles()
+    
+    def safe_after_idle(self, callback):
+        """Safely call after_idle, handling both real Tkinter root and test mocks"""
+        try:
+            if hasattr(self.root, 'after_idle'):
+                self.root.after_idle(callback)
+            else:
+                # For testing scenarios with mock root objects
+                callback()
+        except AttributeError:
+            # Fallback for testing scenarios
+            callback()
+    
+    def safe_after(self, delay, callback):
+        """Safely call after, handling both real Tkinter root and test mocks"""
+        try:
+            if hasattr(self.root, 'after'):
+                return self.root.after(delay, callback)
+            else:
+                # For testing scenarios with mock root objects, execute immediately
+                callback()
+                return None
+        except AttributeError:
+            # Fallback for testing scenarios
+            callback()
+            return None
         
     def get_config_path(self):
         """Get the configuration file path"""
@@ -757,7 +783,7 @@ class StarCitizenKillFeedGUI:
                         
                         if consecutive_errors >= max_consecutive_errors:
                             logger.error(f"Too many consecutive file access errors, stopping monitoring")
-                            self.root.after(0, lambda: self.status_var.set(f"Too many file access errors, monitoring stopped"))
+                            self.safe_after(0, lambda: self.status_var.set(f"Too many file access errors, monitoring stopped"))
                             break
                         
                         # Wait longer before retrying
@@ -766,19 +792,19 @@ class StarCitizenKillFeedGUI:
         except FileNotFoundError as e:
             error_msg = f"Log file not found: {str(e)}"
             logger.error(error_msg)
-            self.root.after(0, lambda: self.status_var.set(error_msg))
+            self.safe_after(0, lambda: self.status_var.set(error_msg))
         except PermissionError as e:
             error_msg = f"Permission denied accessing log file: {str(e)}"
             logger.error(error_msg)
-            self.root.after(0, lambda: self.status_var.set(error_msg))
+            self.safe_after(0, lambda: self.status_var.set(error_msg))
         except UnicodeDecodeError as e:
             error_msg = f"Error reading log file encoding: {str(e)}"
             logger.error(error_msg)
-            self.root.after(0, lambda: self.status_var.set(error_msg))
+            self.safe_after(0, lambda: self.status_var.set(error_msg))
         except Exception as e:
             error_msg = f"Unexpected error monitoring file: {str(e)}"
             logger.error(error_msg, exc_info=True)
-            self.root.after(0, lambda: self.status_var.set(error_msg))
+            self.safe_after(0, lambda: self.status_var.set(error_msg))
         finally:
             logger.info("Log file monitoring stopped")
     
@@ -851,7 +877,7 @@ class StarCitizenKillFeedGUI:
                 self.update_statistics(kill_data)
             
             # Update UI in main thread with debouncing and thread safety
-            self.root.after_idle(lambda: self.display_kill_event(kill_data))
+            self.safe_after_idle(lambda: self.display_kill_event(kill_data))
             self.debounced_update_statistics()
             
             logger.debug(f"Processed kill event: {killer} killed {victim} with {weapon}")
@@ -998,11 +1024,16 @@ class StarCitizenKillFeedGUI:
             
             # Cancel previous timer if it exists
             if self._update_timer:
-                self.root.after_cancel(self._update_timer)
+                try:
+                    if hasattr(self.root, 'after_cancel'):
+                        self.root.after_cancel(self._update_timer)
+                except AttributeError:
+                    # For testing scenarios, just ignore the cancel
+                    pass
             
             # Schedule update after 100ms delay, but ensure we don't update too frequently
             delay = max(50, 100 - int((current_time - self._last_update_time) * 1000))
-            self._update_timer = self.root.after(delay, self._perform_statistics_update)
+            self._update_timer = self.safe_after(delay, self._perform_statistics_update)
     
     def _perform_statistics_update(self):
         """Actually perform the statistics update with thread safety"""
