@@ -72,12 +72,9 @@ def make_stub_gui(player_name='Player1'):
         'victims': __import__('collections').Counter(),
         'killers': __import__('collections').Counter()
     }
-    # Regex same as in module
-    import re
-    g.KILL_LINE_RE = re.compile(
-        r"<Actor Death>\s+CActor::Kill:\s*'(?P<victim>[^']+)'\s*\[[^\]]+\]\s*in zone '[^']+'\s*killed by\s*'(?P<killer>[^']+)'\s*\[[^\]]+\]\s*using\s*'(?P<weapon>[^']+)'",
-        re.IGNORECASE,
-    )
+    # Use centralized regex from constants
+    from constants import KILL_LINE_RE
+    g.KILL_LINE_RE = KILL_LINE_RE
 
     g.root = _FakeRoot()
     g.kill_feed_text = _FakeText()

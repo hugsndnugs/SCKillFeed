@@ -6,3 +6,4 @@ dist
 .venv
 sc-kill-feed.cfg
 release
+sc_kill_feed.log

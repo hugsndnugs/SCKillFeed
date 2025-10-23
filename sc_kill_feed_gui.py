@@ -32,10 +32,24 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Pre-compile regex patterns for better performance
-KILL_LINE_REGEX = re.compile(
-    r"<Actor Death>\s+CActor::Kill:\s*'(?P<victim>[^']+)'\s*\[[^\]]+\]\s*in zone '[^']+'\s*killed by\s*'(?P<killer>[^']+)'\s*\[[^\]]+\]\s*using\s*'(?P<weapon>[^']+)'",
-    re.IGNORECASE,
+from constants import (
+    KILL_LINE_RE,
+    DEFAULT_FILE_CHECK_INTERVAL,
+    DEFAULT_MAX_LINES_PER_CHECK,
+    DEFAULT_MAX_STATISTICS_ENTRIES,
+    DEFAULT_READ_BUFFER_SIZE,
+    DEFAULT_CONFIG_FILENAME,
+    COMMON_GAME_LOG_PATHS,
+    DEFAULT_KILLS_DEQUE_MAXLEN,
+    RECENT_KILLS_COUNT,
+    DEBOUNCE_BASE_MS,
+    DEBOUNCE_MIN_MS,
+    DEFAULT_MAX_CONSECUTIVE_FILE_ERRORS,
+    DEFAULT_MAX_LOG_FILE_SIZE_BYTES,
+    MIN_STATISTICS_ENTRIES,
+    MAX_STATISTICS_ENTRIES_LIMIT,
+    MIN_MAX_LINES_PER_CHECK,
+    MAX_MAX_LINES_PER_CHECK,
 )
 
 # Custom exception classes for better error handling
@@ -64,20 +78,22 @@ class StarCitizenKillFeedGUI:
         self.load_config()
         
         # Data storage - Use deque with maxlen to prevent memory leaks
-        self.kills_data = deque(maxlen=10000)  # Keep only last 10,000 events
+        self.kills_data = deque(maxlen=DEFAULT_KILLS_DEQUE_MAXLEN)  # Keep only last events
         self.data_lock = threading.RLock()  # Thread-safe access to shared data
         
         # Memory management settings
-        self.MAX_STATISTICS_ENTRIES = 1000  # Limit individual statistic counters
-        self.player_name = self.config.get('user', 'ingame_name', fallback='')
-        self.log_file_path = self.config.get('user', 'log_path', fallback='')
+        self.MAX_STATISTICS_ENTRIES = DEFAULT_MAX_STATISTICS_ENTRIES # Limit individual statistic counters
+        # Use section proxy get() to remain compatible with different
+        # ConfigParser implementations (avoid positional fallback issues).
+        self.player_name = self.config['user'].get('ingame_name', '')
+        self.log_file_path = self.config['user'].get('log_path', '')
         self.is_monitoring = False
         self.monitor_thread = None
-        
+
         # Performance settings
-        self.FILE_CHECK_INTERVAL = 0.1  # Reduced from 0.2 seconds
-        self.MAX_LINES_PER_CHECK = 100  # Process up to 100 lines at once for better performance
-        self.READ_BUFFER_SIZE = 8192    # Buffer size for reading file content
+        self.FILE_CHECK_INTERVAL = DEFAULT_FILE_CHECK_INTERVAL
+        self.MAX_LINES_PER_CHECK = DEFAULT_MAX_LINES_PER_CHECK
+        self.READ_BUFFER_SIZE = DEFAULT_READ_BUFFER_SIZE
         
         # UI update debouncing and thread safety
         self._update_timer = None
@@ -100,8 +116,8 @@ class StarCitizenKillFeedGUI:
         }
         
         # Regex for parsing kill events - compiled once for efficiency
-        self.KILL_LINE_RE = KILL_LINE_REGEX
-        
+        self.KILL_LINE_RE = KILL_LINE_RE
+
         self.setup_ui()
         self.setup_styles()
     
@@ -137,7 +153,7 @@ class StarCitizenKillFeedGUI:
             exe_dir = os.path.dirname(sys.executable)
         else:
             exe_dir = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(exe_dir, 'sc-kill-feed.cfg')
+        return os.path.join(exe_dir, DEFAULT_CONFIG_FILENAME)
     
     def validate_file_path(self, file_path: str) -> bool:
         """Validate file path to prevent directory traversal attacks"""
@@ -261,7 +277,7 @@ class StarCitizenKillFeedGUI:
         try:
             # Validate file check interval
             try:
-                interval = float(self.config.get('user', 'file_check_interval', '0.1'))
+                interval = float(self.config['user'].get('file_check_interval', '0.1'))
                 if interval < 0.01 or interval > 1.0:
                     logger.warning(f"Invalid file_check_interval: {interval}, setting to default 0.1")
                     self.config['user']['file_check_interval'] = '0.1'
@@ -275,7 +291,7 @@ class StarCitizenKillFeedGUI:
             
             # Validate max lines per check
             try:
-                max_lines = int(self.config.get('user', 'max_lines_per_check', '100'))
+                max_lines = int(self.config['user'].get('max_lines_per_check', '100'))
                 if max_lines < 1 or max_lines > 1000:
                     logger.warning(f"Invalid max_lines_per_check: {max_lines}, setting to default 100")
                     self.config['user']['max_lines_per_check'] = '100'
@@ -289,7 +305,7 @@ class StarCitizenKillFeedGUI:
             
             # Validate max statistics entries
             try:
-                max_stats = int(self.config.get('user', 'max_statistics_entries', '1000'))
+                max_stats = int(self.config['user'].get('max_statistics_entries', '1000'))
                 if max_stats < 100 or max_stats > 10000:
                     logger.warning(f"Invalid max_statistics_entries: {max_stats}, setting to default 1000")
                     self.config['user']['max_statistics_entries'] = '1000'
@@ -656,11 +672,7 @@ class StarCitizenKillFeedGUI:
     
     def auto_detect_log(self):
         """Auto-detect Star Citizen log file"""
-        common_paths = [
-            os.path.expanduser("~/AppData/Local/Star Citizen/LIVE/Game.log"),
-            os.path.expanduser("~/Documents/Star Citizen/LIVE/Game.log"),
-            "C:/Program Files/Roberts Space Industries/StarCitizen/LIVE/Game.log"
-        ]
+        common_paths = COMMON_GAME_LOG_PATHS
         
         for path in common_paths:
             if os.path.exists(path):
@@ -744,14 +756,21 @@ class StarCitizenKillFeedGUI:
                 
                 while self.is_monitoring:
                     try:
-                        # Check if file has grown
-                        current_position = f.tell()
-                        if current_position < last_position:
-                            # File was truncated, reset to end
-                            logger.info("Log file was truncated, resetting to end")
+                        # Check if file has grown. Use file size from the filesystem
+                        # instead of the file object's tell() which doesn't change
+                        # when another process appends to the file.
+                        try:
+                            current_size = os.path.getsize(self.log_file_path)
+                        except OSError:
+                            # If file was removed/rotated between checks, treat as truncated
+                            current_size = 0
+
+                        if current_size < last_position:
+                            # File was truncated or rotated, reset to end
+                            logger.info("Log file was truncated or rotated, resetting to end")
                             f.seek(0, os.SEEK_END)
                             last_position = f.tell()
-                        elif current_position > last_position:
+                        elif current_size > last_position:
                             # File has new content, read it efficiently
                             f.seek(last_position)
                             lines_read = 0
@@ -1018,10 +1037,21 @@ class StarCitizenKillFeedGUI:
     
     def debounced_update_statistics(self):
         """Debounced statistics update to prevent excessive UI updates with thread safety"""
+        # Defensive: some test instances may bypass __init__, ensure lock and
+        # related state exist so methods can run without requiring __init__.
+        if not hasattr(self, '_ui_update_lock'):
+            self._ui_update_lock = threading.Lock()
+        if not hasattr(self, '_pending_updates'):
+            self._pending_updates = 0
+        if not hasattr(self, '_update_timer'):
+            self._update_timer = None
+        if not hasattr(self, '_last_update_time'):
+            self._last_update_time = 0
+
         with self._ui_update_lock:
             self._pending_updates += 1
             current_time = time.time()
-            
+
             # Cancel previous timer if it exists
             if self._update_timer:
                 try:
@@ -1030,15 +1060,33 @@ class StarCitizenKillFeedGUI:
                 except AttributeError:
                     # For testing scenarios, just ignore the cancel
                     pass
-            
-            # Schedule update after 100ms delay, but ensure we don't update too frequently
+
+            # Compute delay but do not schedule while holding the lock
             delay = max(50, 100 - int((current_time - self._last_update_time) * 1000))
-            self._update_timer = self.safe_after(delay, self._perform_statistics_update)
+
+        # Schedule the callback outside the lock to prevent deadlock when
+        # `after` executes the callback immediately
+        timer = self.safe_after(delay, self._perform_statistics_update)
+
+        # Store the timer id (if any) under the lock
+        try:
+            with self._ui_update_lock:
+                self._update_timer = timer
+        except Exception:
+            # Be defensive in case lock state changes unexpectedly
+            self._update_timer = timer
     
     def _perform_statistics_update(self):
         """Actually perform the statistics update with thread safety"""
+        # Defensive: some test instances may bypass __init__, ensure lock and
+        # related state exist so methods can run without requiring __init__.
+        if not hasattr(self, '_ui_update_lock'):
+            self._ui_update_lock = threading.Lock()
+        if not hasattr(self, '_pending_updates'):
+            self._pending_updates = 0
+
         with self._ui_update_lock:
-            if self._pending_updates > 0:
+            if getattr(self, '_pending_updates', 0) > 0:
                 self.update_statistics_display()
                 self._pending_updates = 0
                 self._last_update_time = time.time()
