@@ -822,6 +822,36 @@ class StarCitizenKillFeedGUI:
             font=("Segoe UI", 9),
         )
         style.map("Treeview", background=[("selected", colors["accent_primary"])])
+        
+        # Configure treeview heading to eliminate white sections
+        style.configure(
+            "Treeview.Heading",
+            background=colors["bg_secondary"],
+            foreground=colors["text_primary"],
+            font=("Segoe UI", 9, "bold"),
+            relief="flat",
+        )
+        style.map("Treeview.Heading", background=[("active", colors["bg_secondary"])])
+        
+        # Configure treeview items for consistent dark theme
+        style.configure(
+            "Treeview.Item",
+            background=colors["bg_tertiary"],
+            foreground=colors["text_primary"],
+        )
+        style.map("Treeview.Item", 
+                 background=[("selected", colors["accent_primary"]),
+                           ("!selected", colors["bg_tertiary"])])
+        
+        # Configure treeview cells to prevent white backgrounds
+        style.configure(
+            "Treeview.Cell",
+            background=colors["bg_tertiary"],
+            foreground=colors["text_primary"],
+        )
+        style.map("Treeview.Cell", 
+                 background=[("selected", colors["accent_primary"]),
+                           ("!selected", colors["bg_tertiary"])])
 
         # Configure entry fields
         style.configure(
@@ -838,6 +868,17 @@ class StarCitizenKillFeedGUI:
             foreground=colors["text_primary"],
             fieldbackground=colors["bg_tertiary"],
         )
+        
+        # Configure checkbutton styling for consistent dark theme
+        style.configure(
+            "TCheckbutton",
+            background=colors["bg_secondary"],
+            foreground=colors["text_primary"],
+            font=("Segoe UI", 10),
+        )
+        style.map("TCheckbutton", 
+                 background=[("active", colors["bg_secondary"]),
+                           ("!active", colors["bg_secondary"])])
 
         # Configure label frames
         style.configure(
@@ -852,6 +893,31 @@ class StarCitizenKillFeedGUI:
             foreground=colors["accent_primary"],
             font=("Segoe UI", 11, "bold"),
         )
+        
+        # Additional styling to ensure no white sections appear
+        # Configure scrollbar styling for dark theme
+        style.configure(
+            "Vertical.TScrollbar",
+            background=colors["bg_tertiary"],
+            troughcolor=colors["bg_secondary"],
+            arrowcolor=colors["text_primary"],
+            darkcolor=colors["bg_tertiary"],
+            lightcolor=colors["bg_tertiary"],
+        )
+        style.map("Vertical.TScrollbar",
+                 background=[("active", colors["bg_tertiary"])])
+        
+        # Configure horizontal scrollbar styling
+        style.configure(
+            "Horizontal.TScrollbar",
+            background=colors["bg_tertiary"],
+            troughcolor=colors["bg_secondary"],
+            arrowcolor=colors["text_primary"],
+            darkcolor=colors["bg_tertiary"],
+            lightcolor=colors["bg_tertiary"],
+        )
+        style.map("Horizontal.TScrollbar",
+                 background=[("active", colors["bg_tertiary"])])
 
     def setup_ui(self):
         """Setup the main user interface with modern design"""
