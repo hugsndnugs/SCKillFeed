@@ -9,7 +9,7 @@ class ConfigValidationTests(unittest.TestCase):
         g = object.__new__(StarCitizenKillFeedGUI)
         g.config = configparser.ConfigParser()
         # Ensure the 'user' section exists but is empty to mimic load_config behavior
-        g.config['user'] = {}
+        g.config["user"] = {}
 
         # Run validation
         g.validate_config()
@@ -21,10 +21,10 @@ class ConfigValidationTests(unittest.TestCase):
     def test_validate_config_corrects_invalid_values(self):
         g = object.__new__(StarCitizenKillFeedGUI)
         g.config = configparser.ConfigParser()
-        g.config['user'] = {
-            'file_check_interval': 'not-a-number',
-            'max_lines_per_check': '-5',
-            'max_statistics_entries': '9999999'
+        g.config["user"] = {
+            "file_check_interval": "not-a-number",
+            "max_lines_per_check": "-5",
+            "max_statistics_entries": "9999999",
         }
 
         g.validate_config()
@@ -35,5 +35,5 @@ class ConfigValidationTests(unittest.TestCase):
         self.assertEqual(g.MAX_STATISTICS_ENTRIES, 1000)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

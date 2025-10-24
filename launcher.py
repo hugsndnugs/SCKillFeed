@@ -8,6 +8,7 @@ Note: keeping this entrypoint for now in case we want to add functionality to it
 import sys
 import os
 
+
 def main():
     try:
         from sc_kill_feed_gui import main as gui_main
@@ -16,6 +17,6 @@ def main():
         sys.exit(1)
     gui_main()
 
-if __name__ == '__main__':
-    main()
 
+if __name__ == "__main__":
+    main()

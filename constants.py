@@ -21,7 +21,7 @@ DEFAULT_MAX_STATISTICS_ENTRIES = 1000
 DEFAULT_READ_BUFFER_SIZE = 8192
 
 # Default config filename used by the application
-DEFAULT_CONFIG_FILENAME = 'sc-kill-feed.cfg'
+DEFAULT_CONFIG_FILENAME = "sc-kill-feed.cfg"
 
 # Common locations to auto-detect Game.log on Windows
 COMMON_GAME_LOG_PATHS = [
@@ -52,8 +52,8 @@ try:
     _config = configparser.ConfigParser()
     if os.path.exists(DEFAULT_CONFIG_FILENAME):
         _config.read(DEFAULT_CONFIG_FILENAME)
-        if 'user' in _config:
-            _user = _config['user']
+        if "user" in _config:
+            _user = _config["user"]
 
             def _get_float(key, fallback, minv=None, maxv=None):
                 val = _user.get(key, fallback=None)
@@ -62,7 +62,11 @@ try:
                 try:
                     f = float(val)
                 except Exception:
-                    _logger.debug("Invalid float for %s in config, using fallback %s", key, fallback)
+                    _logger.debug(
+                        "Invalid float for %s in config, using fallback %s",
+                        key,
+                        fallback,
+                    )
                     return fallback
                 if minv is not None and f < minv:
                     return fallback
@@ -77,7 +81,9 @@ try:
                 try:
                     i = int(float(val))
                 except Exception:
-                    _logger.debug("Invalid int for %s in config, using fallback %s", key, fallback)
+                    _logger.debug(
+                        "Invalid int for %s in config, using fallback %s", key, fallback
+                    )
                     return fallback
                 if minv is not None and i < minv:
                     return fallback
@@ -87,16 +93,25 @@ try:
 
             # Safely override defaults when present and valid
             DEFAULT_FILE_CHECK_INTERVAL = _get_float(
-                'file_check_interval', DEFAULT_FILE_CHECK_INTERVAL, minv=0.01, maxv=10.0
+                "file_check_interval", DEFAULT_FILE_CHECK_INTERVAL, minv=0.01, maxv=10.0
             )
             DEFAULT_MAX_LINES_PER_CHECK = _get_int(
-                'max_lines_per_check', DEFAULT_MAX_LINES_PER_CHECK, minv=MIN_MAX_LINES_PER_CHECK, maxv=MAX_MAX_LINES_PER_CHECK
+                "max_lines_per_check",
+                DEFAULT_MAX_LINES_PER_CHECK,
+                minv=MIN_MAX_LINES_PER_CHECK,
+                maxv=MAX_MAX_LINES_PER_CHECK,
             )
             DEFAULT_MAX_STATISTICS_ENTRIES = _get_int(
-                'max_statistics_entries', DEFAULT_MAX_STATISTICS_ENTRIES, minv=MIN_STATISTICS_ENTRIES, maxv=MAX_STATISTICS_ENTRIES_LIMIT
+                "max_statistics_entries",
+                DEFAULT_MAX_STATISTICS_ENTRIES,
+                minv=MIN_STATISTICS_ENTRIES,
+                maxv=MAX_STATISTICS_ENTRIES_LIMIT,
             )
 except Exception:
     # Non-fatal: if something goes wrong while reading the config file, keep
     # the hard-coded defaults and continue. Debug log for local troubleshooting.
-    _logger.debug("Failed to read/parse %s; using built-in defaults", DEFAULT_CONFIG_FILENAME, exc_info=True)
-
+    _logger.debug(
+        "Failed to read/parse %s; using built-in defaults",
+        DEFAULT_CONFIG_FILENAME,
+        exc_info=True,
+    )
