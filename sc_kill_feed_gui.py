@@ -726,6 +726,10 @@ class StarCitizenKillFeedGUI:
         # Configure frames
         style.configure("TFrame", background=colors["bg_secondary"])
         style.configure("Card.TFrame", background=colors["bg_tertiary"], relief="flat")
+        
+        # Fix potential white box issues with ttk frames
+        style.configure("TFrame", background=colors["bg_secondary"], borderwidth=0)
+        style.map("TFrame", background=[("", colors["bg_secondary"])])
 
         # Configure labels
         style.configure(
@@ -817,8 +821,21 @@ class StarCitizenKillFeedGUI:
             foreground=colors["text_primary"],
             fieldbackground=colors["bg_tertiary"],
             font=("Segoe UI", 9),
+            borderwidth=0,
         )
-        style.map("Treeview", background=[("selected", colors["accent_primary"])])
+        style.map("Treeview", 
+                 background=[("selected", colors["accent_primary"]),
+                           ("", colors["bg_tertiary"])],
+                 fieldbackground=[("", colors["bg_tertiary"])])
+        
+        # Configure treeview headings to prevent white boxes
+        style.configure("Treeview.Heading",
+                       background=colors["bg_secondary"],
+                       foreground=colors["text_primary"],
+                       font=("Segoe UI", 9, "bold"),
+                       borderwidth=0)
+        style.map("Treeview.Heading",
+                 background=[("", colors["bg_secondary"])])
 
         # Configure entry fields
         style.configure(
@@ -828,13 +845,26 @@ class StarCitizenKillFeedGUI:
             fieldbackground=colors["bg_tertiary"],
             font=("Segoe UI", 10),
             padding=[10, 8],
+            borderwidth=1,
+            relief="solid",
         )
+        style.map("TEntry",
+                 background=[("", colors["bg_tertiary"])],
+                 fieldbackground=[("", colors["bg_tertiary"])],
+                 bordercolor=[("", colors["accent_primary"])])
+        
         style.configure(
             "TCombobox",
             background=colors["bg_tertiary"],
             foreground=colors["text_primary"],
             fieldbackground=colors["bg_tertiary"],
+            borderwidth=1,
+            relief="solid",
         )
+        style.map("TCombobox",
+                 background=[("", colors["bg_tertiary"])],
+                 fieldbackground=[("", colors["bg_tertiary"])],
+                 bordercolor=[("", colors["accent_primary"])])
 
         # Configure label frames
         style.configure(
@@ -842,6 +872,8 @@ class StarCitizenKillFeedGUI:
             background=colors["bg_secondary"],
             foreground=colors["text_primary"],
             font=("Segoe UI", 11, "bold"),
+            borderwidth=1,
+            relief="solid",
         )
         style.configure(
             "TLabelframe.Label",
@@ -849,6 +881,22 @@ class StarCitizenKillFeedGUI:
             foreground=colors["accent_primary"],
             font=("Segoe UI", 11, "bold"),
         )
+        # Fix potential white box issues with label frames
+        style.map("TLabelframe", 
+                 background=[("", colors["bg_secondary"])],
+                 bordercolor=[("", colors["accent_primary"])])
+        style.map("TLabelframe.Label", 
+                 background=[("", colors["bg_secondary"])])
+        
+        # Configure checkbuttons to prevent white boxes
+        style.configure("TCheckbutton",
+                       background=colors["bg_secondary"],
+                       foreground=colors["text_primary"],
+                       font=("Segoe UI", 10))
+        style.map("TCheckbutton",
+                 background=[("", colors["bg_secondary"]),
+                           ("active", colors["bg_tertiary"])],
+                 foreground=[("", colors["text_primary"])])
 
     def setup_ui(self):
         """Setup the main user interface with modern design"""
