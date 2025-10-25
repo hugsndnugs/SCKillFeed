@@ -898,7 +898,7 @@ class StarCitizenKillFeedGUI:
             text="Time since last kill/death:",
             bg="#0a0a0a",
             fg="#b0b0b0",
-            font=("Segoe UI", 10),
+            font=("Segoe UI", 12),
         )
         timer_caption.pack(side=tk.LEFT, padx=(0, 8))
 
