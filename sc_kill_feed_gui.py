@@ -712,7 +712,7 @@ class StarCitizenKillFeedGUI:
             "TNotebook.Tab",
             background=colors["bg_tertiary"],
             foreground=colors["text_primary"],
-            padding=[25, 15],
+            padding=[12, 7],
             font=("Segoe UI", 10, "bold"),
         )
         style.map(
