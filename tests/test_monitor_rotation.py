@@ -5,6 +5,7 @@ import time
 import unittest
 
 from sc_kill_feed_gui import StarCitizenKillFeedGUI
+from lib import monitor_helpers
 
 
 class MonitorRotationTest(unittest.TestCase):
@@ -41,7 +42,9 @@ class MonitorRotationTest(unittest.TestCase):
             g.process_kill_event = fake_process
 
             # Start monitor in background
-            t = threading.Thread(target=g.monitor_log_file, daemon=True)
+            t = threading.Thread(
+                target=monitor_helpers.monitor_log_file, args=(g,), daemon=True
+            )
             t.start()
 
             # Allow monitor to initialize and seek to end

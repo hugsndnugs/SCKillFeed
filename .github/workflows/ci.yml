@@ -30,7 +30,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements-test.txt ]; then python -m pip install -r requirements-test.txt; else python -m pip install pytest; fi
-          python -m pytest -q
+          python -m pytest -vv
 
   build-windows:
     name: Build executable (Windows)

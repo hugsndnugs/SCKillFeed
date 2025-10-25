@@ -2,6 +2,7 @@ import unittest
 import configparser
 
 from sc_kill_feed_gui import StarCitizenKillFeedGUI
+from lib.config_helpers import validate_and_apply_config
 
 
 class ConfigValidationTests(unittest.TestCase):
@@ -11,8 +12,8 @@ class ConfigValidationTests(unittest.TestCase):
         # Ensure the 'user' section exists but is empty to mimic load_config behavior
         g.config["user"] = {}
 
-        # Run validation
-        g.validate_config()
+        # Run validation via helper
+        validate_and_apply_config(g.config, g)
 
         self.assertEqual(g.FILE_CHECK_INTERVAL, 0.1)
         self.assertEqual(g.MAX_LINES_PER_CHECK, 100)
@@ -27,7 +28,7 @@ class ConfigValidationTests(unittest.TestCase):
             "max_statistics_entries": "9999999",
         }
 
-        g.validate_config()
+        validate_and_apply_config(g.config, g)
 
         # Invalid values should be corrected to safe defaults
         self.assertEqual(g.FILE_CHECK_INTERVAL, 0.1)

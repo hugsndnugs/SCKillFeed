@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 
 from sc_kill_feed_gui import StarCitizenKillFeedGUI
+from lib import kill_processing, kill_stats, export_helpers
 
 
 class _Stub:
@@ -94,8 +95,8 @@ class GUITest(unittest.TestCase):
         g = make_stub_gui(player_name="Ponder_OG")
         # Sample line similar to test_parse
         line = "<2025-10-10T00:38:41.559Z> [Notice] <Actor Death> CActor::Kill: 'Vagabondy' [202153878531] in zone 'Hangar_SmallFront_GrimHEX_6589113285541' killed by 'Ponder_OG' [200146291288] using 'volt_smg_energy_01_black01_6589113021365' [Class volt_smg_energy_01_black01]"
-        # Call the processor
-        g.process_kill_event(line)
+        # Call the processor (use helper directly)
+        kill_processing.process_kill_event(g, line)
 
         # One kill recorded
         self.assertEqual(len(g.kills_data), 1)
@@ -113,17 +114,17 @@ class GUITest(unittest.TestCase):
 
         # Player killed someone
         kd1 = {"victim": "Other", "killer": "PlayerX", "weapon": "gun"}
-        g.update_statistics(kd1)
+        kill_stats.update_statistics(g, kd1)
         self.assertEqual(g.stats["total_kills"], 1)
 
         # Player died
         kd2 = {"victim": "PlayerX", "killer": "Enemy", "weapon": "gun2"}
-        g.update_statistics(kd2)
+        kill_stats.update_statistics(g, kd2)
         self.assertEqual(g.stats["total_deaths"], 1)
 
         # Suicide by player
         kd3 = {"victim": "PlayerX", "killer": "PlayerX", "weapon": "boom"}
-        g.update_statistics(kd3)
+        kill_stats.update_statistics(g, kd3)
         self.assertEqual(g.stats["total_deaths"], 2)
 
     def test_export_csv_and_json(self):
@@ -140,14 +141,14 @@ class GUITest(unittest.TestCase):
             csv_path = os.path.join(td, "out.csv")
             json_path = os.path.join(td, "out.json")
 
-            g.export_csv(csv_path)
+            export_helpers.export_csv(g.kills_data, csv_path)
             self.assertTrue(os.path.isfile(csv_path))
             with open(csv_path, "r", encoding="utf-8") as f:
                 content = f.read()
                 self.assertIn("killer", content)
                 self.assertIn("PlayerY", content)
 
-            g.export_json(json_path)
+            export_helpers.export_json(g.kills_data, g.stats, g.player_name, json_path)
             self.assertTrue(os.path.isfile(json_path))
             with open(json_path, "r", encoding="utf-8") as f:
                 data = json.load(f)

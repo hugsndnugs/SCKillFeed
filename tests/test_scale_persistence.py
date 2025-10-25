@@ -4,6 +4,7 @@ import os
 import configparser
 
 from sc_kill_feed_gui import StarCitizenKillFeedGUI
+from lib.config_helpers import load_config, save_config, validate_and_apply_config
 
 
 class ScalePersistenceTests(unittest.TestCase):
@@ -13,7 +14,7 @@ class ScalePersistenceTests(unittest.TestCase):
         g.config["user"] = {"gui_scale": "1.37"}
 
         # Should set gui_scale to float value without requiring full init
-        g.validate_config()
+        validate_and_apply_config(g.config, g)
         self.assertAlmostEqual(g.gui_scale, 1.37)
 
     def test_save_and_load_persists_gui_scale(self):
@@ -26,17 +27,16 @@ class ScalePersistenceTests(unittest.TestCase):
             g.config["user"] = {"gui_scale": "1.5"}
             g.config_path = path
 
-            # Save the config
-            g.save_config()
+            # Save the config via helper
+            save_config(g.config, g.config_path)
 
             # Create another instance and load
             h = object.__new__(StarCitizenKillFeedGUI)
-            h.config = configparser.ConfigParser()
+            h.config = load_config(path)
             h.config_path = path
-            h.load_config()
 
             # Loaded config should contain gui_scale and validate_config should parse it
-            h.validate_config()
+            validate_and_apply_config(h.config, h)
             self.assertAlmostEqual(h.gui_scale, 1.5)
         finally:
             try:
