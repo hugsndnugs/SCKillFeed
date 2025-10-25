@@ -393,7 +393,6 @@ class StarCitizenKillFeedGUI:
         """Increase GUI scale by 0.1 (clamped)."""
         self.gui_scale = min(2.0, round(self.gui_scale + 0.1, 2))
         self._apply_font_scaling()
-        self.status_var.set(f"Scale: {self.gui_scale:.1f}x")
         # Persist scale
         try:
             self.config["user"]["gui_scale"] = str(self.gui_scale)
@@ -405,7 +404,6 @@ class StarCitizenKillFeedGUI:
         """Decrease GUI scale by 0.1 (clamped)."""
         self.gui_scale = max(0.5, round(self.gui_scale - 0.1, 2))
         self._apply_font_scaling()
-        self.status_var.set(f"Scale: {self.gui_scale:.1f}x")
         try:
             self.config["user"]["gui_scale"] = str(self.gui_scale)
             self.save_config()
@@ -416,7 +414,6 @@ class StarCitizenKillFeedGUI:
         """Reset GUI scale to 1.0"""
         self.gui_scale = 1.0
         self._apply_font_scaling()
-        self.status_var.set("Scale: 1.0x")
         try:
             self.config["user"]["gui_scale"] = str(self.gui_scale)
             self.save_config()
