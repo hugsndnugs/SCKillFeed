@@ -10,9 +10,9 @@ from sc_kill_feed_gui import StarCitizenKillFeedGUI
 class MonitorRotationTest(unittest.TestCase):
     def test_truncate_and_detect_appended_kill_line(self):
         # Create temporary file and write initial content
-        with tempfile.NamedTemporaryFile('w+', delete=False, encoding='utf-8') as tf:
+        with tempfile.NamedTemporaryFile("w+", delete=False, encoding="utf-8") as tf:
             path = tf.name
-            tf.write('Line A\nLine B\n')
+            tf.write("Line A\nLine B\n")
             tf.flush()
 
         try:
@@ -23,11 +23,12 @@ class MonitorRotationTest(unittest.TestCase):
             g.MAX_LINES_PER_CHECK = 100
             g.READ_BUFFER_SIZE = 8192
             g.is_monitoring = True
-            g.data_lock = __import__('threading').RLock()
+            g.data_lock = __import__("threading").RLock()
             g.kills_data = []
 
             # Use centralized regex constant
             from constants import KILL_LINE_RE
+
             g.KILL_LINE_RE = KILL_LINE_RE
 
             processed = []
@@ -47,8 +48,8 @@ class MonitorRotationTest(unittest.TestCase):
             time.sleep(0.05)
 
             # Truncate the file (simulate rotation/truncation)
-            with open(path, 'w', encoding='utf-8') as f:
-                f.write('')
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("")
                 f.flush()
 
             # Wait a bit for the monitor to detect truncation
@@ -56,8 +57,8 @@ class MonitorRotationTest(unittest.TestCase):
 
             # Append a kill line to the truncated file
             kill_line = "<2025-10-10T00:38:41.559Z> [Notice] <Actor Death> CActor::Kill: 'Victim2' [333] in zone 'Z' killed by 'Killer2' [444] using 'weapon_y'"
-            with open(path, 'a', encoding='utf-8') as f:
-                f.write(kill_line + '\n')
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(kill_line + "\n")
                 f.flush()
 
             got = evt.wait(timeout=2.0)
@@ -66,9 +67,11 @@ class MonitorRotationTest(unittest.TestCase):
             g.is_monitoring = False
             t.join(timeout=1.0)
 
-            self.assertTrue(got, "Monitor did not detect appended kill line after truncation")
+            self.assertTrue(
+                got, "Monitor did not detect appended kill line after truncation"
+            )
             self.assertGreaterEqual(len(processed), 1)
-            self.assertIn('<Actor Death>', processed[0])
+            self.assertIn("<Actor Death>", processed[0])
 
         finally:
             try:
@@ -77,5 +80,5 @@ class MonitorRotationTest(unittest.TestCase):
                 pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
