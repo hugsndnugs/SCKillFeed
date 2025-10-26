@@ -70,6 +70,334 @@ class ConfigurationError(KillFeedError):
     pass
 
 
+class StatisticsOverlay:
+    """Configurable overlay window for displaying important statistics"""
+    
+    def __init__(self, parent_gui):
+        self.parent_gui = parent_gui
+        self.overlay_window = None
+        self.is_visible = False
+        self.is_always_on_top = True
+        self.transparency = 0.8
+        self.position = "top_right"  # top_left, top_right, bottom_left, bottom_right, center
+        self.show_stats = {
+            "kills": True,
+            "deaths": True,
+            "kd_ratio": True,
+            "current_streak": True,
+            "max_kill_streak": True,
+            "time_since_last": True,
+            "top_weapon": True,
+        }
+        self.update_interval = 1000  # milliseconds
+        
+        # Overlay widgets
+        self.stats_labels = {}
+        self._update_job = None
+        
+    def create_overlay(self):
+        """Create the overlay window"""
+        if self.overlay_window:
+            return
+            
+        self.overlay_window = tk.Toplevel(self.parent_gui.root)
+        self.overlay_window.title("SC Kill Feed - Statistics Overlay")
+        self.overlay_window.configure(bg="#0a0a0a")
+        
+        # Configure overlay properties
+        self.overlay_window.attributes("-topmost", self.is_always_on_top)
+        self.overlay_window.attributes("-alpha", self.transparency)
+        self.overlay_window.overrideredirect(True)  # Remove window decorations
+        
+        # Create main frame
+        overlay_frame = tk.Frame(self.overlay_window, bg="#0a0a0a", relief="solid", bd=1)
+        overlay_frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
+        
+        # Title
+        title_label = tk.Label(
+            overlay_frame,
+            text="📊 SC Kill Feed Stats",
+            bg="#0a0a0a",
+            fg="#00d4ff",
+            font=("Segoe UI", 10, "bold"),
+            pady=5
+        )
+        title_label.pack()
+        
+        # Statistics labels
+        self.stats_labels["kills"] = tk.Label(
+            overlay_frame,
+            text="💀 Kills: 0",
+            bg="#0a0a0a",
+            fg="#00ff88",
+            font=("Segoe UI", 9, "bold"),
+            anchor="w"
+        )
+        
+        self.stats_labels["deaths"] = tk.Label(
+            overlay_frame,
+            text="💀 Deaths: 0",
+            bg="#0a0a0a",
+            fg="#ff4757",
+            font=("Segoe UI", 9, "bold"),
+            anchor="w"
+        )
+        
+        self.stats_labels["kd_ratio"] = tk.Label(
+            overlay_frame,
+            text="📊 K/D: 0.00",
+            bg="#0a0a0a",
+            fg="#00d4ff",
+            font=("Segoe UI", 9, "bold"),
+            anchor="w"
+        )
+        
+        self.stats_labels["current_streak"] = tk.Label(
+            overlay_frame,
+            text="🔥 Streak: 0",
+            bg="#0a0a0a",
+            fg="#ffa502",
+            font=("Segoe UI", 9, "bold"),
+            anchor="w"
+        )
+        
+        self.stats_labels["max_kill_streak"] = tk.Label(
+            overlay_frame,
+            text="⭐ Max Streak: 0",
+            bg="#0a0a0a",
+            fg="#ffa502",
+            font=("Segoe UI", 9, "bold"),
+            anchor="w"
+        )
+        
+        self.stats_labels["time_since_last"] = tk.Label(
+            overlay_frame,
+            text="⏱️ Last: --:--:--",
+            bg="#0a0a0a",
+            fg="#b0b0b0",
+            font=("Segoe UI", 9),
+            anchor="w"
+        )
+        
+        self.stats_labels["top_weapon"] = tk.Label(
+            overlay_frame,
+            text="🔫 Top Weapon: None",
+            bg="#0a0a0a",
+            fg="#b0b0b0",
+            font=("Segoe UI", 9),
+            anchor="w"
+        )
+        
+        # Pack visible labels
+        self._pack_visible_labels()
+        
+        # Position the overlay
+        self._position_overlay()
+        
+        # Start update loop
+        self._start_update_loop()
+        
+    def _pack_visible_labels(self):
+        """Pack only the visible statistics labels"""
+        for stat_name, label in self.stats_labels.items():
+            if self.show_stats.get(stat_name, False):
+                label.pack(fill=tk.X, padx=5, pady=1)
+            else:
+                label.pack_forget()
+        
+        # Resize overlay window after packing/unpacking labels
+        self._resize_overlay()
+        
+    def _resize_overlay(self):
+        """Resize the overlay window to fit its content"""
+        if not self.overlay_window:
+            return
+            
+        try:
+            # Force the window to update its geometry
+            self.overlay_window.update_idletasks()
+            
+            # Get the required size
+            req_width = self.overlay_window.winfo_reqwidth()
+            req_height = self.overlay_window.winfo_reqheight()
+            
+            # Set a minimum size to prevent the window from becoming too small
+            min_width = 200
+            min_height = 50
+            
+            # Use the larger of required size or minimum size
+            new_width = max(req_width, min_width)
+            new_height = max(req_height, min_height)
+            
+            # Get current position
+            current_geometry = self.overlay_window.geometry()
+            if '+' in current_geometry:
+                # Extract position from geometry string
+                size_part, pos_part = current_geometry.split('+', 1)
+                new_geometry = f"{new_width}x{new_height}+{pos_part}"
+            else:
+                new_geometry = f"{new_width}x{new_height}"
+                
+            # Apply new geometry
+            self.overlay_window.geometry(new_geometry)
+            
+            logger.debug(f"Overlay resized to {new_width}x{new_height}")
+            
+        except Exception as e:
+            logger.error(f"Error resizing overlay: {e}", exc_info=True)
+                
+    def _position_overlay(self):
+        """Position the overlay window based on settings"""
+        if not self.overlay_window:
+            return
+            
+        # Get screen dimensions
+        screen_width = self.overlay_window.winfo_screenwidth()
+        screen_height = self.overlay_window.winfo_screenheight()
+        
+        # Get overlay dimensions - ensure we have the current size
+        self.overlay_window.update_idletasks()
+        overlay_width = self.overlay_window.winfo_reqwidth()
+        overlay_height = self.overlay_window.winfo_reqheight()
+        
+        # Set minimum dimensions
+        overlay_width = max(overlay_width, 200)
+        overlay_height = max(overlay_height, 50)
+        
+        # Calculate position based on setting
+        if self.position == "top_left":
+            x = 10
+            y = 10
+        elif self.position == "top_right":
+            x = screen_width - overlay_width - 10
+            y = 10
+        elif self.position == "bottom_left":
+            x = 10
+            y = screen_height - overlay_height - 10
+        elif self.position == "bottom_right":
+            x = screen_width - overlay_width - 10
+            y = screen_height - overlay_height - 10
+        elif self.position == "center":
+            x = (screen_width - overlay_width) // 2
+            y = (screen_height - overlay_height) // 2
+        else:
+            x = screen_width - overlay_width - 10
+            y = 10
+            
+        self.overlay_window.geometry(f"{overlay_width}x{overlay_height}+{x}+{y}")
+        
+    def show(self):
+        """Show the overlay"""
+        if not self.overlay_window:
+            self.create_overlay()
+        self.overlay_window.deiconify()
+        self.is_visible = True
+        
+    def hide(self):
+        """Hide the overlay"""
+        if self.overlay_window:
+            self.overlay_window.withdraw()
+        self.is_visible = False
+        
+    def toggle(self):
+        """Toggle overlay visibility"""
+        if self.is_visible:
+            self.hide()
+        else:
+            self.show()
+            
+    def update_statistics(self):
+        """Update the overlay with current statistics"""
+        if not self.overlay_window or not self.is_visible:
+            return
+            
+        try:
+            # Get current stats from parent GUI
+            with self.parent_gui.data_lock:
+                stats_copy = {
+                    "total_kills": self.parent_gui.stats["total_kills"],
+                    "total_deaths": self.parent_gui.stats["total_deaths"],
+                    "kill_streak": self.parent_gui.stats["kill_streak"],
+                    "death_streak": self.parent_gui.stats["death_streak"],
+                    "max_kill_streak": self.parent_gui.stats["max_kill_streak"],
+                    "max_death_streak": self.parent_gui.stats["max_death_streak"],
+                    "weapons_used": self.parent_gui.stats["weapons_used"].copy(),
+                }
+                last_kill_time = self.parent_gui.last_kill_time
+                
+            # Update kills
+            if self.show_stats.get("kills", False):
+                self.stats_labels["kills"].config(text=f"💀 Kills: {stats_copy['total_kills']}")
+                
+            # Update deaths
+            if self.show_stats.get("deaths", False):
+                self.stats_labels["deaths"].config(text=f"💀 Deaths: {stats_copy['total_deaths']}")
+                
+            # Update K/D ratio
+            if self.show_stats.get("kd_ratio", False):
+                if stats_copy["total_deaths"] > 0:
+                    kd_ratio = stats_copy["total_kills"] / stats_copy["total_deaths"]
+                else:
+                    kd_ratio = stats_copy["total_kills"] if stats_copy["total_kills"] > 0 else 0
+                self.stats_labels["kd_ratio"].config(text=f"📊 K/D: {kd_ratio:.2f}")
+                
+            # Update current streak
+            if self.show_stats.get("current_streak", False):
+                current_streak = (
+                    stats_copy["kill_streak"]
+                    if stats_copy["kill_streak"] > 0
+                    else -stats_copy["death_streak"]
+                )
+                self.stats_labels["current_streak"].config(text=f"🔥 Streak: {current_streak}")
+                
+            # Update max kill streak
+            if self.show_stats.get("max_kill_streak", False):
+                self.stats_labels["max_kill_streak"].config(text=f"⭐ Max Streak: {stats_copy['max_kill_streak']}")
+                
+            # Update time since last kill
+            if self.show_stats.get("time_since_last", False):
+                if last_kill_time is None:
+                    self.stats_labels["time_since_last"].config(text="⏱️ Last: --:--:--")
+                else:
+                    delta = datetime.now() - last_kill_time
+                    total_seconds = int(delta.total_seconds())
+                    hours, remainder = divmod(total_seconds, 3600)
+                    minutes, seconds = divmod(remainder, 60)
+                    self.stats_labels["time_since_last"].config(text=f"⏱️ Last: {hours:d}:{minutes:02d}:{seconds:02d}")
+                    
+            # Update top weapon
+            if self.show_stats.get("top_weapon", False):
+                if stats_copy["weapons_used"]:
+                    top_weapon, count = stats_copy["weapons_used"].most_common(1)[0]
+                    self.stats_labels["top_weapon"].config(text=f"🔫 Top: {top_weapon} ({count})")
+                else:
+                    self.stats_labels["top_weapon"].config(text="🔫 Top Weapon: None")
+                    
+        except Exception as e:
+            logger.error(f"Error updating overlay statistics: {e}", exc_info=True)
+            
+    def _start_update_loop(self):
+        """Start the periodic update loop"""
+        if self._update_job:
+            self.parent_gui.root.after_cancel(self._update_job)
+        self._update_job = self.parent_gui.root.after(self.update_interval, self._update_loop)
+        
+    def _update_loop(self):
+        """Periodic update loop"""
+        self.update_statistics()
+        self._start_update_loop()
+        
+    def destroy(self):
+        """Destroy the overlay window"""
+        if self._update_job:
+            self.parent_gui.root.after_cancel(self._update_job)
+            self._update_job = None
+        if self.overlay_window:
+            self.overlay_window.destroy()
+            self.overlay_window = None
+        self.is_visible = False
+
+
 class StarCitizenKillFeedGUI:
     def __init__(self):
         self.root = tk.Tk()
@@ -126,11 +454,17 @@ class StarCitizenKillFeedGUI:
             "killers": Counter(),
         }
 
+        # Statistics overlay
+        self.overlay = StatisticsOverlay(self)
+
         # Regex for parsing kill events - compiled once for efficiency
         self.KILL_LINE_RE = KILL_LINE_RE
 
         self.setup_ui()
         self.setup_styles()
+        
+        # Load overlay configuration after overlay is created
+        self.load_overlay_config()
 
         # Initialize scaling/font baselines and start timer loop
         try:
@@ -188,6 +522,12 @@ class StarCitizenKillFeedGUI:
                 self.save_config()
             except Exception:
                 logger.debug("Failed to save gui_scale on close", exc_info=True)
+            
+            # Clean up overlay
+            try:
+                self.overlay.destroy()
+            except Exception:
+                logger.debug("Failed to destroy overlay on close", exc_info=True)
         finally:
             try:
                 self.root.destroy()
@@ -576,6 +916,19 @@ class StarCitizenKillFeedGUI:
                 "max_lines_per_check": "100",
                 "max_statistics_entries": "1000",
                 "gui_scale": "1.0",
+            },
+            "overlay": {
+                "position": "top_right",
+                "transparency": "0.8",
+                "always_on_top": "True",
+                "update_interval": "1000",
+                "show_kills": "True",
+                "show_deaths": "True",
+                "show_kd_ratio": "True",
+                "show_current_streak": "True",
+                "show_max_kill_streak": "True",
+                "show_time_since_last": "True",
+                "show_top_weapon": "True",
             }
         }
 
@@ -671,9 +1024,66 @@ class StarCitizenKillFeedGUI:
         except Exception as e:
             logger.error(f"Error validating configuration: {e}", exc_info=True)
 
+    def load_overlay_config(self):
+        """Load overlay configuration from config"""
+        try:
+            if "overlay" in self.config:
+                overlay_config = self.config["overlay"]
+                
+                # Load overlay settings
+                self.overlay.position = overlay_config.get("position", "top_right")
+                self.overlay.transparency = float(overlay_config.get("transparency", "0.8"))
+                self.overlay.is_always_on_top = overlay_config.get("always_on_top", "True").lower() == "true"
+                self.overlay.update_interval = int(overlay_config.get("update_interval", "1000"))
+                
+                # Load which statistics to show
+                self.overlay.show_stats = {
+                    "kills": overlay_config.get("show_kills", "True").lower() == "true",
+                    "deaths": overlay_config.get("show_deaths", "True").lower() == "true",
+                    "kd_ratio": overlay_config.get("show_kd_ratio", "True").lower() == "true",
+                    "current_streak": overlay_config.get("show_current_streak", "True").lower() == "true",
+                    "max_kill_streak": overlay_config.get("show_max_kill_streak", "True").lower() == "true",
+                    "time_since_last": overlay_config.get("show_time_since_last", "True").lower() == "true",
+                    "top_weapon": overlay_config.get("show_top_weapon", "True").lower() == "true",
+                }
+                
+                logger.debug("Overlay configuration loaded successfully")
+        except Exception as e:
+            logger.error(f"Error loading overlay configuration: {e}", exc_info=True)
+
+    def save_overlay_config(self):
+        """Save overlay configuration to config"""
+        try:
+            if "overlay" not in self.config:
+                self.config["overlay"] = {}
+                
+            overlay_config = self.config["overlay"]
+            
+            # Save overlay settings
+            overlay_config["position"] = self.overlay.position
+            overlay_config["transparency"] = str(self.overlay.transparency)
+            overlay_config["always_on_top"] = str(self.overlay.is_always_on_top)
+            overlay_config["update_interval"] = str(self.overlay.update_interval)
+            
+            # Save which statistics to show
+            overlay_config["show_kills"] = str(self.overlay.show_stats.get("kills", True))
+            overlay_config["show_deaths"] = str(self.overlay.show_stats.get("deaths", True))
+            overlay_config["show_kd_ratio"] = str(self.overlay.show_stats.get("kd_ratio", True))
+            overlay_config["show_current_streak"] = str(self.overlay.show_stats.get("current_streak", True))
+            overlay_config["show_max_kill_streak"] = str(self.overlay.show_stats.get("max_kill_streak", True))
+            overlay_config["show_time_since_last"] = str(self.overlay.show_stats.get("time_since_last", True))
+            overlay_config["show_top_weapon"] = str(self.overlay.show_stats.get("top_weapon", True))
+            
+            logger.debug("Overlay configuration saved successfully")
+        except Exception as e:
+            logger.error(f"Error saving overlay configuration: {e}", exc_info=True)
+
     def save_config(self):
         """Save configuration to file with error handling"""
         try:
+            # Save overlay configuration before writing to file
+            self.save_overlay_config()
+            
             # Create directory if it doesn't exist
             config_dir = os.path.dirname(self.config_path)
             if config_dir and not os.path.exists(config_dir):
@@ -860,11 +1270,21 @@ class StarCitizenKillFeedGUI:
             fieldbackground=colors["bg_tertiary"],
             borderwidth=1,
             relief="solid",
+            arrowcolor=colors["accent_primary"],
         )
         style.map("TCombobox",
                  background=[("", colors["bg_tertiary"])],
                  fieldbackground=[("", colors["bg_tertiary"])],
-                 bordercolor=[("", colors["accent_primary"])])
+                 bordercolor=[("", colors["accent_primary"])],
+                 selectbackground=[("readonly", colors["bg_secondary"]), ("", colors["bg_tertiary"])],
+                 selectforeground=[("readonly", colors["text_primary"]), ("", colors["text_primary"])])
+        
+        # Try to configure the combobox dropdown list background
+        # Note: This is platform-dependent and may not work on all systems
+        try:
+            self.root.tk.call('ttk::combobox::ConfigureListbox') 
+        except Exception:
+            pass
 
         # Configure label frames
         style.configure(
@@ -912,6 +1332,7 @@ class StarCitizenKillFeedGUI:
         self.create_kill_feed_tab()
         self.create_statistics_tab()
         self.create_settings_tab()
+        self.create_overlay_tab()
         self.create_export_tab()
 
         # Modern status bar
@@ -1001,6 +1422,27 @@ class StarCitizenKillFeedGUI:
             btn_row, text="A+", command=self.increase_scale, style="Scale.TButton"
         )
         inc_btn.pack(side=tk.LEFT, padx=6)
+
+        # Overlay controls
+        overlay_frame = ttk.Frame(control_frame)
+        overlay_frame.pack(side=tk.RIGHT, padx=15, pady=15)
+
+        overlay_label = tk.Label(
+            overlay_frame,
+            text="Statistics Overlay",
+            bg="#0a0a0a",
+            fg="#ffffff",
+            font=("Segoe UI", 10, "bold"),
+        )
+        overlay_label.pack(side=tk.TOP, pady=(0, 5))
+
+        self.overlay_toggle_btn = ttk.Button(
+            overlay_frame,
+            text="📊 Show Overlay",
+            command=self.toggle_overlay,
+            style="Small.TButton",
+        )
+        self.overlay_toggle_btn.pack(side=tk.TOP)
 
         # Player info intentionally omitted from Kill Feed tab (kept in Settings)
 
@@ -1245,6 +1687,175 @@ class StarCitizenKillFeedGUI:
         )
         save_button.pack(pady=25)
 
+    def create_overlay_tab(self):
+        """Create the overlay configuration tab with modern design"""
+        overlay_frame = ttk.Frame(self.notebook)
+        self.notebook.add(overlay_frame, text="📊 Overlay")
+
+        # Overlay visibility controls
+        visibility_frame = ttk.LabelFrame(
+            overlay_frame, text="👁️ Overlay Visibility", style="TLabelframe"
+        )
+        visibility_frame.pack(fill=tk.X, padx=15, pady=15)
+
+        # Toggle overlay button
+        self.overlay_visibility_btn = ttk.Button(
+            visibility_frame,
+            text="📊 Show Overlay",
+            command=self.toggle_overlay,
+            style="Success.TButton",
+        )
+        self.overlay_visibility_btn.pack(pady=15)
+
+        # Overlay position settings
+        position_frame = ttk.LabelFrame(
+            overlay_frame, text="📍 Overlay Position", style="TLabelframe"
+        )
+        position_frame.pack(fill=tk.X, padx=15, pady=15)
+
+        tk.Label(
+            position_frame,
+            text="Position:",
+            bg="#0a0a0a",
+            fg="#ffffff",
+            font=("Segoe UI", 10, "bold"),
+        ).pack(anchor="w", padx=15, pady=(15, 5))
+
+        self.overlay_position_var = tk.StringVar(value=self.overlay.position)
+        
+        # Use OptionMenu for better dropdown styling control
+        position_options = ["top_left", "top_right", "bottom_left", "bottom_right", "center"]
+        position_menu = tk.OptionMenu(
+            position_frame,
+            self.overlay_position_var,
+            self.overlay.position,
+            *position_options,
+            command=self.update_overlay_position
+        )
+        # Style the OptionMenu to match the app's black theme
+        position_menu.config(
+            bg="#0a0a0a",
+            fg="#ffffff",
+            activebackground="#0a0a0a",
+            activeforeground="#00d4ff",
+            font=("Segoe UI", 10),
+            borderwidth=1,
+            relief="solid",
+            highlightthickness=1,
+            highlightbackground="#00d4ff",
+            width=20,
+        )
+        # Style the menu part of the OptionMenu
+        position_menu["menu"].config(
+            bg="#0a0a0a",
+            fg="#ffffff",
+            activebackground="#00d4ff",
+            activeforeground="#0a0a0a",
+            font=("Segoe UI", 10),
+            selectcolor="#0a0a0a",
+            bd=1,
+            relief="solid",
+        )
+        position_menu.pack(anchor="w", padx=15, pady=(0, 15))
+
+        # Overlay appearance settings
+        appearance_frame = ttk.LabelFrame(
+            overlay_frame, text="🎨 Overlay Appearance", style="TLabelframe"
+        )
+        appearance_frame.pack(fill=tk.X, padx=15, pady=15)
+
+        # Transparency setting
+        tk.Label(
+            appearance_frame,
+            text="Transparency:",
+            bg="#0a0a0a",
+            fg="#ffffff",
+            font=("Segoe UI", 10, "bold"),
+        ).pack(anchor="w", padx=15, pady=(15, 5))
+
+        self.overlay_transparency_var = tk.DoubleVar(value=self.overlay.transparency)
+        transparency_scale = tk.Scale(
+            appearance_frame,
+            from_=0.1,
+            to=1.0,
+            resolution=0.1,
+            orient=tk.HORIZONTAL,
+            variable=self.overlay_transparency_var,
+            command=self.update_overlay_transparency,
+            bg="#0a0a0a",
+            fg="#ffffff",
+            highlightbackground="#0a0a0a",
+            troughcolor="#4a4a4a",
+            activebackground="#6a6a6a",
+            borderwidth=0,
+            sliderlength=20,
+            sliderrelief="flat",
+        )
+        transparency_scale.pack(fill=tk.X, padx=15, pady=(0, 15))
+
+        # Always on top setting
+        self.overlay_always_on_top_var = tk.BooleanVar(value=self.overlay.is_always_on_top)
+        always_on_top_check = ttk.Checkbutton(
+            appearance_frame,
+            text="Always on top",
+            variable=self.overlay_always_on_top_var,
+            command=self.update_overlay_always_on_top,
+        )
+        always_on_top_check.pack(anchor="w", padx=15, pady=(0, 15))
+
+        # Statistics selection
+        stats_frame = ttk.LabelFrame(
+            overlay_frame, text="📈 Displayed Statistics", style="TLabelframe"
+        )
+        stats_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+
+        # Create checkboxes for each statistic
+        self.overlay_stats_vars = {}
+        stats_options = [
+            ("kills", "💀 Kills"),
+            ("deaths", "💀 Deaths"),
+            ("kd_ratio", "📊 K/D Ratio"),
+            ("current_streak", "🔥 Current Streak"),
+            ("max_kill_streak", "⭐ Max Kill Streak"),
+            ("time_since_last", "⏱️ Time Since Last Kill"),
+            ("top_weapon", "🔫 Top Weapon"),
+        ]
+
+        for stat_key, stat_label in stats_options:
+            self.overlay_stats_vars[stat_key] = tk.BooleanVar(
+                value=self.overlay.show_stats.get(stat_key, False)
+            )
+            check = ttk.Checkbutton(
+                stats_frame,
+                text=stat_label,
+                variable=self.overlay_stats_vars[stat_key],
+                command=self.update_overlay_stats,
+            )
+            check.pack(anchor="w", padx=15, pady=2)
+
+        # Update interval setting
+        interval_frame = ttk.LabelFrame(
+            overlay_frame, text="⏱️ Update Settings", style="TLabelframe"
+        )
+        interval_frame.pack(fill=tk.X, padx=15, pady=15)
+
+        tk.Label(
+            interval_frame,
+            text="Update Interval (milliseconds):",
+            bg="#0a0a0a",
+            fg="#ffffff",
+            font=("Segoe UI", 10, "bold"),
+        ).pack(anchor="w", padx=15, pady=(15, 5))
+
+        self.overlay_update_interval_var = tk.IntVar(value=self.overlay.update_interval)
+        interval_entry = ttk.Entry(
+            interval_frame,
+            textvariable=self.overlay_update_interval_var,
+            width=10,
+        )
+        interval_entry.pack(anchor="w", padx=15, pady=(0, 15))
+        interval_entry.bind("<KeyRelease>", self.update_overlay_interval)
+
     def create_export_tab(self):
         """Create the data export tab with modern design"""
         export_frame = ttk.Frame(self.notebook)
@@ -1379,6 +1990,69 @@ class StarCitizenKillFeedGUI:
             )
 
         messagebox.showinfo("Success", "Settings saved successfully!")
+
+    def toggle_overlay(self):
+        """Toggle overlay visibility"""
+        self.overlay.toggle()
+        # Update button text
+        if hasattr(self, 'overlay_toggle_btn'):
+            if self.overlay.is_visible:
+                self.overlay_toggle_btn.config(text="📊 Hide Overlay")
+            else:
+                self.overlay_toggle_btn.config(text="📊 Show Overlay")
+        if hasattr(self, 'overlay_visibility_btn'):
+            if self.overlay.is_visible:
+                self.overlay_visibility_btn.config(text="📊 Hide Overlay")
+            else:
+                self.overlay_visibility_btn.config(text="📊 Show Overlay")
+
+    def update_overlay_position(self, value=None):
+        """Update overlay position"""
+        # Get the value either from the parameter or the variable
+        if value is not None:
+            self.overlay.position = value
+            self.overlay_position_var.set(value)
+        else:
+            self.overlay.position = self.overlay_position_var.get()
+        if self.overlay.overlay_window:
+            self.overlay._position_overlay()
+        self.save_config()
+
+    def update_overlay_transparency(self, value):
+        """Update overlay transparency"""
+        self.overlay.transparency = float(value)
+        if self.overlay.overlay_window:
+            self.overlay.overlay_window.attributes("-alpha", self.overlay.transparency)
+        self.save_config()
+
+    def update_overlay_always_on_top(self):
+        """Update overlay always on top setting"""
+        self.overlay.is_always_on_top = self.overlay_always_on_top_var.get()
+        if self.overlay.overlay_window:
+            self.overlay.overlay_window.attributes("-topmost", self.overlay.is_always_on_top)
+        self.save_config()
+
+    def update_overlay_stats(self):
+        """Update which statistics are shown in overlay"""
+        for stat_key, var in self.overlay_stats_vars.items():
+            self.overlay.show_stats[stat_key] = var.get()
+        if self.overlay.overlay_window:
+            self.overlay._pack_visible_labels()
+            # Trigger a resize after updating stats visibility
+            self.overlay._resize_overlay()
+        self.save_config()
+
+    def update_overlay_interval(self, event=None):
+        """Update overlay update interval"""
+        try:
+            interval = int(self.overlay_update_interval_var.get())
+            if interval >= 100:  # Minimum 100ms
+                self.overlay.update_interval = interval
+                if self.overlay.overlay_window:
+                    self.overlay._start_update_loop()
+                self.save_config()
+        except ValueError:
+            pass  # Ignore invalid values
 
     def toggle_monitoring(self):
         """Toggle kill feed monitoring"""
