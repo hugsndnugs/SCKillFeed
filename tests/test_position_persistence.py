@@ -17,14 +17,23 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sc_kill_feed_gui import StatisticsOverlay, StarCitizenKillFeedGUI
 
+# Check if running in headless environment
+SKIP_TESTS = os.environ.get('DISPLAY') is None and sys.platform != 'win32'
+
 
 class TestPositionPersistence(unittest.TestCase):
     """Test cases for position persistence functionality"""
     
     def setUp(self):
         """Set up test fixtures"""
-        self.root = tk.Tk()
-        self.root.withdraw()
+        if SKIP_TESTS:
+            self.skipTest("Skipping GUI tests in headless environment")
+        
+        try:
+            self.root = tk.Tk()
+            self.root.withdraw()
+        except tk.TclError:
+            self.skipTest("No display available for GUI tests")
         
         # Create a mock parent GUI
         self.mock_parent = Mock()
@@ -37,9 +46,10 @@ class TestPositionPersistence(unittest.TestCase):
         
     def tearDown(self):
         """Clean up after tests"""
-        if hasattr(self.overlay, 'overlay_window') and self.overlay.overlay_window:
+        if hasattr(self, 'overlay') and hasattr(self.overlay, 'overlay_window') and self.overlay.overlay_window:
             self.overlay.destroy()
-        self.root.destroy()
+        if hasattr(self, 'root'):
+            self.root.destroy()
     
     def test_custom_position_initialization(self):
         """Test that custom position properties are initialized correctly"""
@@ -155,17 +165,24 @@ class TestPositionConfiguration(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures"""
-        self.root = tk.Tk()
-        self.root.withdraw()
+        if SKIP_TESTS:
+            self.skipTest("Skipping GUI tests in headless environment")
+        
+        try:
+            self.root = tk.Tk()
+            self.root.withdraw()
+        except tk.TclError:
+            self.skipTest("No display available for GUI tests")
         
         # Create GUI instance
         self.gui = StarCitizenKillFeedGUI()
         
     def tearDown(self):
         """Clean up after tests"""
-        if hasattr(self.gui, 'overlay') and self.gui.overlay.overlay_window:
+        if hasattr(self, 'gui') and hasattr(self.gui, 'overlay') and self.gui.overlay.overlay_window:
             self.gui.overlay.destroy()
-        self.gui.root.destroy()
+        if hasattr(self, 'root'):
+            self.root.destroy()
     
     def test_save_custom_position_config(self):
         """Test saving custom position to configuration"""
@@ -289,17 +306,24 @@ class TestPositionIntegration(unittest.TestCase):
     
     def setUp(self):
         """Set up integration test fixtures"""
-        self.root = tk.Tk()
-        self.root.withdraw()
+        if SKIP_TESTS:
+            self.skipTest("Skipping GUI tests in headless environment")
+        
+        try:
+            self.root = tk.Tk()
+            self.root.withdraw()
+        except tk.TclError:
+            self.skipTest("No display available for GUI tests")
         
         # Create GUI instance
         self.gui = StarCitizenKillFeedGUI()
         
     def tearDown(self):
         """Clean up after integration tests"""
-        if hasattr(self.gui, 'overlay') and self.gui.overlay.overlay_window:
+        if hasattr(self, 'gui') and hasattr(self.gui, 'overlay') and self.gui.overlay.overlay_window:
             self.gui.overlay.destroy()
-        self.gui.root.destroy()
+        if hasattr(self, 'root'):
+            self.root.destroy()
     
     def test_complete_drag_to_custom_position_workflow(self):
         """Test complete workflow from drag to custom position"""
