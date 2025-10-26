@@ -233,9 +233,13 @@ def init_scaling(gui):
     but operates on the GUI instance so the logic is testable here.
     """
     try:
-        gui._base_font_sizes = {}
-        gui._font_objects = {}
-        gui._base_style_paddings = {}
+        # Preserve any fonts/styles that may have been created by UI
+        # construction code (for example tag-specific Font objects that are
+        # created when building the kill-feed). Don't clobber existing
+        # dictionaries if they were already populated.
+        gui._base_font_sizes = getattr(gui, "_base_font_sizes", {}) or {}
+        gui._font_objects = getattr(gui, "_font_objects", {}) or {}
+        gui._base_style_paddings = getattr(gui, "_base_style_paddings", {}) or {}
 
         font_names = [
             "TkDefaultFont",
