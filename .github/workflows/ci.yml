@@ -30,7 +30,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements-test.txt ]; then python -m pip install -r requirements-test.txt; else python -m pip install pytest; fi
-          python -m pytest -vv
+          # Install X virtual framebuffer so Tkinter can create a display in headless CI
+          sudo apt-get update && sudo apt-get install -y xvfb
+          # Run tests under xvfb so GUI-related tests (tkinter) don't fail on headless runners
+          xvfb-run -s "-screen 0 1920x1080x24" python -m pytest -vv
 
   build-windows:
     name: Build executable (Windows)
