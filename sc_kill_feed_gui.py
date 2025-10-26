@@ -79,7 +79,12 @@ class StatisticsOverlay:
         self.is_visible = False
         self.is_always_on_top = True
         self.transparency = 0.8
-        self.position = "top_right"  # top_left, top_right, bottom_left, bottom_right, center
+        self.position = "top_right"  # top_left, top_right, bottom_left, bottom_right, center, custom
+        self.custom_x = None
+        self.custom_y = None
+        self._drag_data = {"x": 0, "y": 0}
+        self.is_locked = False  # Lock state to prevent accidental dragging
+        self._last_save_time = 0  # Throttle configuration saves
         self.show_stats = {
             "kills": True,
             "deaths": True,
@@ -109,20 +114,42 @@ class StatisticsOverlay:
         self.overlay_window.attributes("-alpha", self.transparency)
         self.overlay_window.overrideredirect(True)  # Remove window decorations
         
+        # Add drag functionality
+        self.overlay_window.bind("<Button-1>", self._start_drag)
+        self.overlay_window.bind("<B1-Motion>", self._on_drag)
+        self.overlay_window.bind("<ButtonRelease-1>", self._stop_drag)
+        
         # Create main frame
         overlay_frame = tk.Frame(self.overlay_window, bg="#0a0a0a", relief="solid", bd=1)
         overlay_frame.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
         
+        # Title and lock button frame
+        title_frame = tk.Frame(overlay_frame, bg="#0a0a0a")
+        title_frame.pack(fill=tk.X, pady=5)
+        
         # Title
         title_label = tk.Label(
-            overlay_frame,
+            title_frame,
             text="📊 SC Kill Feed Stats",
             bg="#0a0a0a",
             fg="#00d4ff",
             font=("Segoe UI", 10, "bold"),
-            pady=5
         )
-        title_label.pack()
+        title_label.pack(side=tk.LEFT)
+        
+        # Lock/Unlock button
+        self.lock_button = tk.Button(
+            title_frame,
+            text="🔒",
+            bg="#0a0a0a",
+            fg="#ff4757",
+            font=("Segoe UI", 8),
+            relief="flat",
+            bd=0,
+            command=self.toggle_lock,
+            cursor="hand2"
+        )
+        self.lock_button.pack(side=tk.RIGHT, padx=(5, 0))
         
         # Statistics labels
         self.stats_labels["kills"] = tk.Label(
@@ -280,6 +307,9 @@ class StatisticsOverlay:
         elif self.position == "center":
             x = (screen_width - overlay_width) // 2
             y = (screen_height - overlay_height) // 2
+        elif self.position == "custom" and self.custom_x is not None and self.custom_y is not None:
+            x = self.custom_x
+            y = self.custom_y
         else:
             x = screen_width - overlay_width - 10
             y = 10
@@ -386,6 +416,94 @@ class StatisticsOverlay:
         """Periodic update loop"""
         self.update_statistics()
         self._start_update_loop()
+        
+    def _start_drag(self, event):
+        """Start dragging the overlay"""
+        if self.is_locked:
+            return  # Don't start drag if locked
+        self._drag_data["x"] = event.x_root
+        self._drag_data["y"] = event.y_root
+        
+    def _on_drag(self, event):
+        """Handle dragging the overlay"""
+        if self.is_locked or not self._drag_data["x"] or not self._drag_data["y"]:
+            return  # Don't drag if locked or no drag data
+            
+        # Calculate the distance moved
+        delta_x = event.x_root - self._drag_data["x"]
+        delta_y = event.y_root - self._drag_data["y"]
+        
+        # Get current window position
+        current_geometry = self.overlay_window.geometry()
+        if "x" in current_geometry:
+            # Extract current position from geometry string
+            parts = current_geometry.split("+")
+            if len(parts) >= 3:
+                current_x = int(parts[1])
+                current_y = int(parts[2])
+                
+                # Calculate new position
+                new_x = current_x + delta_x
+                new_y = current_y + delta_y
+                
+                # Update window position
+                self.overlay_window.geometry(f"+{new_x}+{new_y}")
+                
+                # Update drag data for next movement
+                self._drag_data["x"] = event.x_root
+                self._drag_data["y"] = event.y_root
+                
+                # Update position to custom and save coordinates
+                self.position = "custom"
+                self.custom_x = new_x
+                self.custom_y = new_y
+                
+                # Update position info display
+                if hasattr(self.parent_gui, 'update_position_info'):
+                    self.parent_gui.update_position_info()
+                
+                # Save configuration (but throttle saves to avoid excessive logging)
+                import time
+                current_time = time.time()
+                if current_time - self._last_save_time > 0.5:  # Save max once every 500ms
+                    if hasattr(self.parent_gui, 'save_config'):
+                        self.parent_gui.save_config()
+                    self._last_save_time = current_time
+        
+    def _stop_drag(self, event):
+        """Stop dragging the overlay"""
+        self._drag_data["x"] = 0
+        self._drag_data["y"] = 0
+        
+        # Final save when dragging stops
+        if hasattr(self.parent_gui, 'save_config'):
+            self.parent_gui.save_config()
+        
+    def toggle_lock(self):
+        """Toggle the lock state of the overlay"""
+        self.is_locked = not self.is_locked
+        if hasattr(self, 'lock_button'):
+            if self.is_locked:
+                self.lock_button.config(text="🔓", fg="#00ff88")  # Unlocked state
+            else:
+                self.lock_button.config(text="🔒", fg="#ff4757")  # Locked state
+        
+        # Update main UI status display
+        if hasattr(self.parent_gui, 'update_lock_status'):
+            self.parent_gui.update_lock_status()
+        
+        # Save the lock state
+        if hasattr(self.parent_gui, 'save_config'):
+            self.parent_gui.save_config()
+            
+    def set_lock_state(self, locked):
+        """Set the lock state programmatically"""
+        self.is_locked = locked
+        if hasattr(self, 'lock_button'):
+            if self.is_locked:
+                self.lock_button.config(text="🔓", fg="#00ff88")
+            else:
+                self.lock_button.config(text="🔒", fg="#ff4757")
         
     def destroy(self):
         """Destroy the overlay window"""
@@ -1036,6 +1154,20 @@ class StarCitizenKillFeedGUI:
                 self.overlay.is_always_on_top = overlay_config.get("always_on_top", "True").lower() == "true"
                 self.overlay.update_interval = int(overlay_config.get("update_interval", "1000"))
                 
+                # Load custom position coordinates
+                custom_x = overlay_config.get("custom_x")
+                custom_y = overlay_config.get("custom_y")
+                if custom_x is not None and custom_y is not None:
+                    try:
+                        self.overlay.custom_x = int(custom_x)
+                        self.overlay.custom_y = int(custom_y)
+                    except ValueError:
+                        self.overlay.custom_x = None
+                        self.overlay.custom_y = None
+                
+                # Load lock state
+                self.overlay.is_locked = overlay_config.get("is_locked", "False").lower() == "true"
+                
                 # Load which statistics to show
                 self.overlay.show_stats = {
                     "kills": overlay_config.get("show_kills", "True").lower() == "true",
@@ -1064,6 +1196,14 @@ class StarCitizenKillFeedGUI:
             overlay_config["transparency"] = str(self.overlay.transparency)
             overlay_config["always_on_top"] = str(self.overlay.is_always_on_top)
             overlay_config["update_interval"] = str(self.overlay.update_interval)
+            
+            # Save custom position coordinates
+            if self.overlay.custom_x is not None and self.overlay.custom_y is not None:
+                overlay_config["custom_x"] = str(self.overlay.custom_x)
+                overlay_config["custom_y"] = str(self.overlay.custom_y)
+            
+            # Save lock state
+            overlay_config["is_locked"] = str(self.overlay.is_locked)
             
             # Save which statistics to show
             overlay_config["show_kills"] = str(self.overlay.show_stats.get("kills", True))
@@ -1723,40 +1863,119 @@ class StarCitizenKillFeedGUI:
 
         self.overlay_position_var = tk.StringVar(value=self.overlay.position)
         
-        # Use OptionMenu for better dropdown styling control
-        position_options = ["top_left", "top_right", "bottom_left", "bottom_right", "center"]
-        position_menu = tk.OptionMenu(
-            position_frame,
-            self.overlay_position_var,
-            self.overlay.position,
-            *position_options,
-            command=self.update_overlay_position
-        )
-        # Style the OptionMenu to match the app's black theme
-        position_menu.config(
+        # Create position selection frame
+        position_selection_frame = ttk.Frame(position_frame)
+        position_selection_frame.pack(fill=tk.X, padx=15, pady=(0, 10))
+        
+        # Preset position buttons
+        preset_frame = ttk.Frame(position_selection_frame)
+        preset_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        tk.Label(
+            preset_frame,
+            text="Preset Positions:",
             bg="#0a0a0a",
             fg="#ffffff",
-            activebackground="#0a0a0a",
-            activeforeground="#00d4ff",
-            font=("Segoe UI", 10),
-            borderwidth=1,
-            relief="solid",
-            highlightthickness=1,
-            highlightbackground="#00d4ff",
-            width=20,
-        )
-        # Style the menu part of the OptionMenu
-        position_menu["menu"].config(
+            font=("Segoe UI", 9),
+        ).pack(anchor="w")
+        
+        button_frame = ttk.Frame(preset_frame)
+        button_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        # Create preset position buttons
+        positions = [
+            ("top_left", "↖️ Top Left"),
+            ("top_right", "↗️ Top Right"),
+            ("bottom_left", "↙️ Bottom Left"),
+            ("bottom_right", "↘️ Bottom Right"),
+            ("center", "🎯 Center")
+        ]
+        
+        for i, (pos, label) in enumerate(positions):
+            btn = ttk.Button(
+                button_frame,
+                text=label,
+                command=lambda p=pos: self.update_overlay_position(p),
+                width=12
+            )
+            btn.pack(side=tk.LEFT, padx=(0, 5))
+        
+        # Custom position section
+        custom_frame = ttk.Frame(position_selection_frame)
+        custom_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        tk.Label(
+            custom_frame,
+            text="Custom Position:",
             bg="#0a0a0a",
             fg="#ffffff",
-            activebackground="#00d4ff",
-            activeforeground="#0a0a0a",
-            font=("Segoe UI", 10),
-            selectcolor="#0a0a0a",
-            bd=1,
-            relief="solid",
+            font=("Segoe UI", 9),
+        ).pack(anchor="w")
+        
+        custom_info_frame = ttk.Frame(custom_frame)
+        custom_info_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        # Drag instruction
+        drag_label = tk.Label(
+            custom_info_frame,
+            text="🖱️ Drag the overlay to any position to set custom location",
+            bg="#0a0a0a",
+            fg="#00d4ff",
+            font=("Segoe UI", 9),
         )
-        position_menu.pack(anchor="w", padx=15, pady=(0, 15))
+        drag_label.pack(anchor="w")
+        
+        # Current position display
+        self.position_info_label = tk.Label(
+            custom_info_frame,
+            text="Current: Using preset position",
+            bg="#0a0a0a",
+            fg="#b0b0b0",
+            font=("Segoe UI", 8),
+        )
+        self.position_info_label.pack(anchor="w", pady=(2, 0))
+        
+        # Update position info display
+        self.update_position_info()
+        
+        # Lock control section
+        lock_frame = ttk.LabelFrame(
+            overlay_frame, text="🔒 Position Lock", style="TLabelframe"
+        )
+        lock_frame.pack(fill=tk.X, padx=15, pady=15)
+        
+        lock_info_frame = ttk.Frame(lock_frame)
+        lock_info_frame.pack(fill=tk.X, padx=15, pady=10)
+        
+        tk.Label(
+            lock_info_frame,
+            text="Lock the overlay position to prevent accidental dragging:",
+            bg="#0a0a0a",
+            fg="#ffffff",
+            font=("Segoe UI", 9),
+        ).pack(anchor="w")
+        
+        # Lock toggle button
+        self.lock_toggle_btn = ttk.Button(
+            lock_info_frame,
+            text="🔒 Lock Position",
+            command=self.toggle_overlay_lock,
+            width=20
+        )
+        self.lock_toggle_btn.pack(pady=(10, 0))
+        
+        # Lock status display
+        self.lock_status_label = tk.Label(
+            lock_info_frame,
+            text="Status: Unlocked (draggable)",
+            bg="#0a0a0a",
+            fg="#b0b0b0",
+            font=("Segoe UI", 8),
+        )
+        self.lock_status_label.pack(anchor="w", pady=(5, 0))
+        
+        # Update lock status display
+        self.update_lock_status()
 
         # Overlay appearance settings
         appearance_frame = ttk.LabelFrame(
@@ -2012,11 +2231,59 @@ class StarCitizenKillFeedGUI:
         if value is not None:
             self.overlay.position = value
             self.overlay_position_var.set(value)
+            # Clear custom coordinates when using preset position
+            if value != "custom":
+                self.overlay.custom_x = None
+                self.overlay.custom_y = None
         else:
             self.overlay.position = self.overlay_position_var.get()
         if self.overlay.overlay_window:
             self.overlay._position_overlay()
+        self.update_position_info()
         self.save_config()
+        
+    def update_position_info(self):
+        """Update the position info display"""
+        if hasattr(self, 'position_info_label'):
+            if self.overlay.position == "custom" and self.overlay.custom_x is not None and self.overlay.custom_y is not None:
+                self.position_info_label.config(
+                    text=f"Current: Custom position ({self.overlay.custom_x}, {self.overlay.custom_y})",
+                    fg="#00ff88"
+                )
+            else:
+                position_names = {
+                    "top_left": "Top Left",
+                    "top_right": "Top Right", 
+                    "bottom_left": "Bottom Left",
+                    "bottom_right": "Bottom Right",
+                    "center": "Center"
+                }
+                position_name = position_names.get(self.overlay.position, "Unknown")
+                self.position_info_label.config(
+                    text=f"Current: {position_name}",
+                    fg="#b0b0b0"
+                )
+                
+    def toggle_overlay_lock(self):
+        """Toggle the overlay lock state from the main UI"""
+        self.overlay.toggle_lock()
+        self.update_lock_status()
+        
+    def update_lock_status(self):
+        """Update the lock status display"""
+        if hasattr(self, 'lock_status_label') and hasattr(self, 'lock_toggle_btn'):
+            if self.overlay.is_locked:
+                self.lock_toggle_btn.config(text="🔓 Unlock Position")
+                self.lock_status_label.config(
+                    text="Status: Locked (position fixed)",
+                    fg="#00ff88"
+                )
+            else:
+                self.lock_toggle_btn.config(text="🔒 Lock Position")
+                self.lock_status_label.config(
+                    text="Status: Unlocked (draggable)",
+                    fg="#b0b0b0"
+                )
 
     def update_overlay_transparency(self, value):
         """Update overlay transparency"""
@@ -2633,3 +2900,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
