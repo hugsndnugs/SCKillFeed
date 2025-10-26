@@ -17,23 +17,33 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sc_kill_feed_gui import StarCitizenKillFeedGUI
 
+# Check if running in headless environment
+SKIP_TESTS = os.environ.get('DISPLAY') is None and sys.platform != 'win32'
+
 
 class TestConfigurationSaving(unittest.TestCase):
     """Test cases for configuration saving functionality"""
     
     def setUp(self):
         """Set up test fixtures"""
-        self.root = tk.Tk()
-        self.root.withdraw()
+        if SKIP_TESTS:
+            self.skipTest("Skipping GUI tests in headless environment")
+        
+        try:
+            self.root = tk.Tk()
+            self.root.withdraw()
+        except tk.TclError:
+            self.skipTest("No display available for GUI tests")
         
         # Create GUI instance
         self.gui = StarCitizenKillFeedGUI()
         
     def tearDown(self):
         """Clean up after tests"""
-        if hasattr(self.gui, 'overlay') and self.gui.overlay.overlay_window:
+        if hasattr(self, 'gui') and hasattr(self.gui, 'overlay') and self.gui.overlay.overlay_window:
             self.gui.overlay.destroy()
-        self.gui.root.destroy()
+        if hasattr(self, 'root'):
+            self.root.destroy()
     
     def test_save_overlay_config_structure(self):
         """Test that overlay configuration is saved with proper structure"""
@@ -145,17 +155,24 @@ class TestConfigurationLoading(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures"""
-        self.root = tk.Tk()
-        self.root.withdraw()
+        if SKIP_TESTS:
+            self.skipTest("Skipping GUI tests in headless environment")
+        
+        try:
+            self.root = tk.Tk()
+            self.root.withdraw()
+        except tk.TclError:
+            self.skipTest("No display available for GUI tests")
         
         # Create GUI instance
         self.gui = StarCitizenKillFeedGUI()
         
     def tearDown(self):
         """Clean up after tests"""
-        if hasattr(self.gui, 'overlay') and self.gui.overlay.overlay_window:
+        if hasattr(self, 'gui') and hasattr(self.gui, 'overlay') and self.gui.overlay.overlay_window:
             self.gui.overlay.destroy()
-        self.gui.root.destroy()
+        if hasattr(self, 'root'):
+            self.root.destroy()
     
     def test_load_overlay_config_complete(self):
         """Test loading complete overlay configuration"""
@@ -295,17 +312,24 @@ class TestConfigurationIntegration(unittest.TestCase):
     
     def setUp(self):
         """Set up integration test fixtures"""
-        self.root = tk.Tk()
-        self.root.withdraw()
+        if SKIP_TESTS:
+            self.skipTest("Skipping GUI tests in headless environment")
+        
+        try:
+            self.root = tk.Tk()
+            self.root.withdraw()
+        except tk.TclError:
+            self.skipTest("No display available for GUI tests")
         
         # Create GUI instance
         self.gui = StarCitizenKillFeedGUI()
         
     def tearDown(self):
         """Clean up after integration tests"""
-        if hasattr(self.gui, 'overlay') and self.gui.overlay.overlay_window:
+        if hasattr(self, 'gui') and hasattr(self.gui, 'overlay') and self.gui.overlay.overlay_window:
             self.gui.overlay.destroy()
-        self.gui.root.destroy()
+        if hasattr(self, 'root'):
+            self.root.destroy()
     
     def test_save_load_roundtrip(self):
         """Test saving and loading configuration maintains all settings"""
