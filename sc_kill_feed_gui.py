@@ -30,6 +30,7 @@ from lib.win32_helpers import (
     set_app_icon,
     apply_native_win32_borderless,
     set_foreground_hwnd,
+    setup_taskbar_click_handler,
 )
 from lib.ui_helpers import (
     setup_styles,
@@ -160,9 +161,12 @@ class StarCitizenKillFeedGUI:
             self._borderless_enabled = True
             # Make the visible Toplevel follow the hidden root's map/unmap so
             # minimizing the taskbar button hides the visible window and vice versa.
+            # Also handle window state changes more reliably
             try:
-                self._tk_root.bind("<Unmap>", lambda e: self.root.withdraw())
-                self._tk_root.bind("<Map>", lambda e: self.root.deiconify())
+                self._tk_root.bind("<Unmap>", self._on_root_unmap)
+                self._tk_root.bind("<Map>", self._on_root_map)
+                self._tk_root.bind("<FocusIn>", self._on_root_focus_in)
+                self._tk_root.bind("<FocusOut>", self._on_root_focus_out)
             except Exception:
                 pass
         else:
@@ -592,6 +596,15 @@ class StarCitizenKillFeedGUI:
         except Exception:
             pass
 
+        # Add periodic state synchronization for Windows hidden root setup
+        if sys.platform == "win32" and getattr(self, "_tk_root", None):
+            try:
+                self._schedule_state_sync()
+                # Setup taskbar click handler for more reliable interaction
+                setup_taskbar_click_handler(self._tk_root, self._on_taskbar_click)
+            except Exception:
+                pass
+
         # Main container with padding
         main_frame = ttk.Frame(self.root)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
@@ -760,24 +773,50 @@ class StarCitizenKillFeedGUI:
 
     def _minimize_window(self):
         """Minimize the window and try to ensure it has a taskbar entry on Windows."""
-        # Use the Tkinter iconify which is reliable on native chrome windows.
         try:
-            try:
-                self.root.iconify()
-                return
-            except Exception:
+            if getattr(self, "_tk_root", None):
+                # On Windows with hidden root, minimize the root window
+                # This will trigger the Unmap event and hide the visible window
                 try:
-                    self.root.withdraw()
+                    self._tk_root.iconify()
                     return
                 except Exception:
+                    try:
+                        self._tk_root.withdraw()
+                        return
+                    except Exception:
+                        pass
+            else:
+                # Fallback for non-Windows or when no hidden root
+                try:
+                    self.root.iconify()
                     return
+                except Exception:
+                    try:
+                        self.root.withdraw()
+                        return
+                    except Exception:
+                        return
         except Exception:
             # If anything unexpected happens, ignore to avoid crashing the UI
             return
 
-    def _on_root_map(self, event=None):
-        """Re-enable borderless chrome after the window is restored from minimized state."""
+    def _on_root_unmap(self, event=None):
+        """Handle when the hidden root window is minimized (taskbar icon clicked)."""
         try:
+            # Hide the visible window when the root is minimized
+            self.root.withdraw()
+        except Exception:
+            pass
+
+    def _on_root_map(self, event=None):
+        """Handle when the hidden root window is restored (taskbar icon clicked)."""
+        try:
+            # Show and raise the visible window when the root is restored
+            self.root.deiconify()
+            self.root.lift()
+            self.root.focus_force()
+            # Re-enable borderless chrome after restoration
             if getattr(self, "_borderless_enabled", False):
                 try:
                     # Delay slightly to allow WM to finish mapping
@@ -787,6 +826,77 @@ class StarCitizenKillFeedGUI:
                         self.root.overrideredirect(True)
                     except Exception:
                         pass
+        except Exception:
+            pass
+
+    def _on_root_focus_in(self, event=None):
+        """Handle when the hidden root window gains focus."""
+        try:
+            # Ensure the visible window is shown and focused
+            if not self.root.winfo_viewable():
+                self.root.deiconify()
+            self.root.lift()
+            self.root.focus_force()
+        except Exception:
+            pass
+
+    def _on_root_focus_out(self, event=None):
+        """Handle when the hidden root window loses focus."""
+        try:
+            # Optional: could hide window when losing focus, but usually not desired
+            pass
+        except Exception:
+            pass
+
+    def _sync_window_state(self):
+        """Synchronize the visible window state with the hidden root window state."""
+        try:
+            if not getattr(self, "_tk_root", None):
+                return
+            
+            # Check if the root window is visible/mapped
+            try:
+                root_state = self._tk_root.state()
+                if root_state == "normal" or root_state == "zoomed":
+                    # Root is visible, ensure our window is too
+                    if not self.root.winfo_viewable():
+                        self.root.deiconify()
+                        self.root.lift()
+                elif root_state == "iconic":
+                    # Root is minimized, hide our window
+                    if self.root.winfo_viewable():
+                        self.root.withdraw()
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def _schedule_state_sync(self):
+        """Schedule periodic state synchronization for Windows hidden root setup."""
+        try:
+            self._sync_window_state()
+            # Schedule the next sync in 100ms
+            self.root.after(100, self._schedule_state_sync)
+        except Exception:
+            pass
+
+    def _on_taskbar_click(self):
+        """Handle taskbar icon clicks for more reliable window state management."""
+        try:
+            if not getattr(self, "_tk_root", None):
+                return
+            
+            # Check current state and toggle accordingly
+            try:
+                root_state = self._tk_root.state()
+                if root_state == "iconic":
+                    # Window is minimized, restore it
+                    self._tk_root.deiconify()
+                else:
+                    # Window is visible, minimize it
+                    self._tk_root.iconify()
+            except Exception:
+                pass
         except Exception:
             pass
 
