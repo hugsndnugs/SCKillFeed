@@ -536,6 +536,18 @@ def create_kill_feed_tab(gui):
             selectforeground=THEME_BG_TERTIARY,
         )
         gui.kill_feed_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
+        
+        # Configure the scrollbar to match the black background
+        try:
+            gui.kill_feed_text.vbar.configure(
+                bg=THEME_BG_TERTIARY,
+                troughcolor=THEME_BG_TERTIARY,
+                activebackground=THEME_BG_TERTIARY,
+                borderwidth=0,
+                highlightthickness=0,
+            )
+        except Exception:
+            logger.debug("Failed to configure kill feed scrollbar", exc_info=True)
 
         # Create and register Font objects for the kill-feed text and tags so they scale
         try:
