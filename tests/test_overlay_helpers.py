@@ -49,8 +49,16 @@ class MockTkRoot:
         self.winfo_y_calls = []
         self._children = []
         self.tk = Mock()  # Required by tkinter
+        self.pack_calls = []  # Track pack() calls
+        self.config_calls = []  # Track config() calls
         
-    def attributes(self, **kwargs):
+    def attributes(self, *args, **kwargs):
+        """Mock attributes() method for window attributes."""
+        if args:
+            # Handle positional args like root.attributes("-topmost", True)
+            for i in range(0, len(args), 2):
+                if i + 1 < len(args):
+                    kwargs[args[i]] = args[i + 1]
         self.attributes_calls.append(kwargs)
         return None
     
@@ -62,6 +70,10 @@ class MockTkRoot:
     
     def deiconify(self):
         self.deiconify_calls.append(True)
+    
+    def lift(self):
+        """Mock lift() method to bring window to front."""
+        pass
     
     def title(self, title=None):
         if title:
@@ -83,6 +95,22 @@ class MockTkRoot:
         pass
     
     def bind(self, *args, **kwargs):
+        pass
+    
+    def pack(self, **kwargs):
+        """Mock pack() method for widgets."""
+        self.pack_calls.append(kwargs)
+    
+    def config(self, **kwargs):
+        """Mock config() method for widgets."""
+        self.config_calls.append(kwargs)
+    
+    def cget(self, key):
+        """Mock cget() method for widgets."""
+        return self.config_calls[-1].get(key, "") if self.config_calls else ""
+    
+    def overrideredirect(self, flag):
+        """Mock overrideredirect() method."""
         pass
 
 
@@ -263,7 +291,8 @@ class TestKillTrackerOverlay(unittest.TestCase):
         
         overlay.change_theme("neon")
         self.assertEqual(overlay.theme_name, "neon")
-        self.assertIn("neon", overlay.theme)
+        # Verify theme properties changed to neon theme
+        self.assertEqual(overlay.theme["fg"], "#00ffff")  # Neon theme property
     
     def test_overlay_change_theme_invalid(self, mock_label, mock_frame, mock_toplevel):
         """Test theme change with invalid theme name."""
