@@ -1335,8 +1335,36 @@ class StarCitizenKillFeedGUI:
                 except Exception:
                     position = (50, 50)
             
+            # Load enabled stats from config
+            try:
+                from lib.overlay_helpers import KillTrackerOverlay
+                overlay_stats_config = self.config["overlay"].get("enabled_stats", "")
+                if overlay_stats_config:
+                    enabled_stats_list = [s.strip() for s in overlay_stats_config.split(",")]
+                    enabled_stats = {
+                        stat: stat in enabled_stats_list 
+                        for stat in KillTrackerOverlay.AVAILABLE_STATS.keys()
+                    }
+                else:
+                    # Default: kills, deaths, kd, streak
+                    enabled_stats = {
+                        "kills": True,
+                        "deaths": True,
+                        "kd": True,
+                        "streak": True,
+                        "max_kill_streak": False,
+                        "max_death_streak": False,
+                    }
+            except Exception:
+                enabled_stats = None
+            
             # Create overlay
-            self.overlay = create_overlay(self, theme=overlay_theme, position=position)
+            self.overlay = create_overlay(
+                self, 
+                theme=overlay_theme, 
+                position=position,
+                enabled_stats=enabled_stats
+            )
             
             # Set opacity from config (applies the configured opacity even if it's the default)
             self.overlay.set_opacity(overlay_opacity)

@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import font
 import logging
 import sys
+from datetime import datetime
 from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -62,13 +63,25 @@ OVERLAY_THEMES = {
 class KillTrackerOverlay:
     """A transparent, always-on-top overlay window for displaying kill statistics."""
 
-    def __init__(self, gui, theme: str = "dark", position: Tuple[int, int] = (50, 50)):
+    # Available stats and their display configuration
+    AVAILABLE_STATS = {
+        "kills": {"label": "Kills", "accent": "accent_kill", "key": "total_kills", "format": "int"},
+        "deaths": {"label": "Deaths", "accent": "accent_death", "key": "total_deaths", "format": "int"},
+        "kd": {"label": "K/D", "accent": "accent_kd", "key": "kd_ratio", "format": "float"},
+        "streak": {"label": "Streak", "accent": "accent_streak", "key": "current_streak", "format": "int"},
+        "max_kill_streak": {"label": "Max K Streak", "accent": "accent_streak", "key": "max_kill_streak", "format": "int"},
+        "max_death_streak": {"label": "Max D Streak", "accent": "accent_death", "key": "max_death_streak", "format": "int"},
+        "time_since_last": {"label": "Time Since", "accent": "accent_kd", "key": "time_since_last", "format": "time"},
+    }
+
+    def __init__(self, gui, theme: str = "dark", position: Tuple[int, int] = (50, 50), enabled_stats: Optional[Dict[str, bool]] = None):
         """Initialize the overlay window.
 
         Args:
             gui: The main GUI instance that holds statistics
             theme: Theme name (dark, light, neon, minimal)
             position: Initial position (x, y) on screen
+            enabled_stats: Dictionary of stat names to boolean indicating which stats to show
         """
         self.gui = gui
         self.theme_name = theme
@@ -82,6 +95,21 @@ class KillTrackerOverlay:
         self._dragging = False
         self._custom_opacity = None  # User-set opacity override
         self._locked = False  # Lock state to prevent dragging
+        
+        # Stat configuration - defaults to showing kills, deaths, kd, streak
+        if enabled_stats is None:
+            enabled_stats = {
+                "kills": True,
+                "deaths": True,
+                "kd": True,
+                "streak": True,
+                "max_kill_streak": False,
+                "max_death_streak": False,
+            }
+        self.enabled_stats = enabled_stats
+        
+        # Store stat label widgets
+        self.stat_widgets = {}
 
         # Create overlay window
         self.root = tk.Toplevel()
@@ -94,8 +122,9 @@ class KillTrackerOverlay:
         # Create UI
         self._create_ui()
 
-        # Update position and size (compact size for overlay)
-        self.root.geometry(f"180x150+{position[0]}+{position[1]}")
+        # Update position and size dynamically based on visible stats
+        self._update_window_size()
+
         # Make sure window doesn't resize
         self.root.resizable(False, False)
 
@@ -135,7 +164,7 @@ class KillTrackerOverlay:
             logger.debug(f"Error setting up overlay window: {e}", exc_info=True)
 
     def _create_ui(self):
-        """Create the overlay UI elements."""
+        """Create the overlay UI elements dynamically based on enabled stats."""
         # Main container with padding and rounded appearance
         main_frame = tk.Frame(
             self.root,
@@ -169,108 +198,71 @@ class KillTrackerOverlay:
         stats_container = tk.Frame(main_frame, bg=self.theme["bg"])
         stats_container.pack(fill=tk.BOTH, expand=True)
 
-        # Kills
-        kills_frame = tk.Frame(stats_container, bg=self.theme["bg"])
-        kills_frame.pack(fill=tk.X, pady=1)
+        # Clear stat widgets dict
+        self.stat_widgets = {}
 
-        tk.Label(
-            kills_frame,
-            text="Kills:",
-            bg=self.theme["bg"],
-            fg=self.theme["fg"],
-            font=("Segoe UI", 8),
-            anchor="w",
-            width=8,
-        ).pack(side=tk.LEFT)
+        # Create stat rows dynamically based on enabled_stats
+        for stat_name in self.AVAILABLE_STATS.keys():
+            if self.enabled_stats.get(stat_name, False):
+                stat_config = self.AVAILABLE_STATS[stat_name]
+                
+                # Create frame for this stat
+                stat_frame = tk.Frame(stats_container, bg=self.theme["bg"])
+                stat_frame.pack(fill=tk.X, pady=1)
 
-        self.kills_label = tk.Label(
-            kills_frame,
-            text="0",
-            bg=self.theme["bg"],
-            fg=self.theme["accent_kill"],
-            font=("Segoe UI", 10, "bold"),
-            width=6,
-            anchor="e",
-        )
-        self.kills_label.pack(side=tk.RIGHT)
+                # Label for stat name
+                label = tk.Label(
+                    stat_frame,
+                    text=f"{stat_config['label']}:",
+                    bg=self.theme["bg"],
+                    fg=self.theme["fg"],
+                    font=("Segoe UI", 8),
+                    anchor="w",
+                    width=12,
+                )
+                label.pack(side=tk.LEFT)
 
-        # Deaths
-        deaths_frame = tk.Frame(stats_container, bg=self.theme["bg"])
-        deaths_frame.pack(fill=tk.X, pady=1)
-
-        tk.Label(
-            deaths_frame,
-            text="Deaths:",
-            bg=self.theme["bg"],
-            fg=self.theme["fg"],
-            font=("Segoe UI", 8),
-            anchor="w",
-            width=8,
-        ).pack(side=tk.LEFT)
-
-        self.deaths_label = tk.Label(
-            deaths_frame,
-            text="0",
-            bg=self.theme["bg"],
-            fg=self.theme["accent_death"],
-            font=("Segoe UI", 10, "bold"),
-            width=6,
-            anchor="e",
-        )
-        self.deaths_label.pack(side=tk.RIGHT)
-
-        # K/D Ratio
-        kd_frame = tk.Frame(stats_container, bg=self.theme["bg"])
-        kd_frame.pack(fill=tk.X, pady=1)
-
-        tk.Label(
-            kd_frame,
-            text="K/D:",
-            bg=self.theme["bg"],
-            fg=self.theme["fg"],
-            font=("Segoe UI", 8),
-            anchor="w",
-            width=8,
-        ).pack(side=tk.LEFT)
-
-        self.kd_label = tk.Label(
-            kd_frame,
-            text="0.00",
-            bg=self.theme["bg"],
-            fg=self.theme["accent_kd"],
-            font=("Segoe UI", 10, "bold"),
-            width=6,
-            anchor="e",
-        )
-        self.kd_label.pack(side=tk.RIGHT)
-
-        # Streak
-        streak_frame = tk.Frame(stats_container, bg=self.theme["bg"])
-        streak_frame.pack(fill=tk.X, pady=1)
-
-        tk.Label(
-            streak_frame,
-            text="Streak:",
-            bg=self.theme["bg"],
-            fg=self.theme["fg"],
-            font=("Segoe UI", 8),
-            anchor="w",
-            width=8,
-        ).pack(side=tk.LEFT)
-
-        self.streak_label = tk.Label(
-            streak_frame,
-            text="0",
-            bg=self.theme["bg"],
-            fg=self.theme["accent_streak"],
-            font=("Segoe UI", 10, "bold"),
-            width=6,
-            anchor="e",
-        )
-        self.streak_label.pack(side=tk.RIGHT)
+                # Value label for stat - determine default text based on format
+                if stat_config["format"] == "time":
+                    default_text = "--:--:--"
+                elif stat_config["format"] == "float":
+                    default_text = "0.00"
+                else:
+                    default_text = "0"
+                
+                value_label = tk.Label(
+                    stat_frame,
+                    text=default_text,
+                    bg=self.theme["bg"],
+                    fg=self.theme[stat_config["accent"]],
+                    font=("Segoe UI", 10, "bold"),
+                    width=8,
+                    anchor="e",
+                )
+                value_label.pack(side=tk.RIGHT)
+                
+                # Store widget reference
+                self.stat_widgets[stat_name] = value_label
 
         # Make entire window draggable
         self._setup_dragging()
+    
+    def _update_window_size(self):
+        """Update window size based on number of visible stats."""
+        try:
+            # Count visible stats
+            visible_count = sum(1 for enabled in self.enabled_stats.values() if enabled)
+            
+            # Base height: header (25) + separator (5) + padding (16) + per-stat (22)
+            # Width: fixed at 200 for now
+            height = 25 + 5 + 16 + (visible_count * 22) if visible_count > 0 else 50
+            width = 200
+            
+            self.root.geometry(f"{width}x{height}+{self.position[0]}+{self.position[1]}")
+        except Exception as e:
+            logger.debug(f"Error updating window size: {e}", exc_info=True)
+            # Fallback to default size
+            self.root.geometry(f"200x150+{self.position[0]}+{self.position[1]}")
 
     def _setup_dragging(self):
         """Make the overlay window draggable by clicking anywhere, unless locked."""
@@ -400,30 +392,66 @@ class KillTrackerOverlay:
                     "total_deaths": self.gui.stats.get("total_deaths", 0),
                     "kill_streak": self.gui.stats.get("kill_streak", 0),
                     "death_streak": self.gui.stats.get("death_streak", 0),
+                    "max_kill_streak": self.gui.stats.get("max_kill_streak", 0),
+                    "max_death_streak": self.gui.stats.get("max_death_streak", 0),
                 }
+                
+                # Get last kill time for time since calculation
+                last_kill_time = getattr(self.gui, "last_kill_time", None)
 
-            # Update kills
-            self.kills_label.config(text=str(stats_copy["total_kills"]))
-
-            # Update deaths
-            self.deaths_label.config(text=str(stats_copy["total_deaths"]))
-
-            # Calculate and update K/D ratio
+            # Calculate K/D ratio
             if stats_copy["total_deaths"] > 0:
                 kd_ratio = stats_copy["total_kills"] / stats_copy["total_deaths"]
             else:
                 kd_ratio = (
                     stats_copy["total_kills"] if stats_copy["total_kills"] > 0 else 0.0
                 )
-            self.kd_label.config(text=f"{kd_ratio:.2f}")
-
-            # Update streak (positive for kill streak, negative for death streak)
+            
+            # Calculate current streak (positive for kill streak, negative for death streak)
             current_streak = (
                 stats_copy["kill_streak"]
                 if stats_copy["kill_streak"] > 0
                 else -stats_copy["death_streak"]
             )
-            self.streak_label.config(text=str(current_streak))
+            
+            # Calculate time since last kill/death
+            if last_kill_time is None or last_kill_time == "":
+                time_since_last = "--:--:--"
+            else:
+                delta = datetime.now() - last_kill_time
+                total_seconds = int(delta.total_seconds())
+                hours, remainder = divmod(total_seconds, 3600)
+                minutes, seconds = divmod(remainder, 60)
+                time_since_last = f"{hours:d}:{minutes:02d}:{seconds:02d}"
+            
+            # Map of stat keys to their computed values
+            stat_values = {
+                "total_kills": stats_copy["total_kills"],
+                "total_deaths": stats_copy["total_deaths"],
+                "kd_ratio": kd_ratio,
+                "current_streak": current_streak,
+                "max_kill_streak": stats_copy["max_kill_streak"],
+                "max_death_streak": stats_copy["max_death_streak"],
+                "time_since_last": time_since_last,
+            }
+
+            # Update each enabled stat dynamically
+            for stat_name, widget in self.stat_widgets.items():
+                stat_config = self.AVAILABLE_STATS.get(stat_name)
+                if stat_config and widget:
+                    stat_key = stat_config["key"]
+                    value = stat_values.get(stat_key, 0)
+                    
+                    # Format value based on type
+                    if stat_config["format"] == "float":
+                        formatted_value = f"{value:.2f}"
+                    elif stat_config["format"] == "time":
+                        # Time format is already formatted
+                        formatted_value = value
+                    else:
+                        formatted_value = str(value)
+                    
+                    widget.config(text=formatted_value)
 
         except Exception as e:
             logger.debug(f"Error updating overlay stats: {e}", exc_info=True)
@@ -442,6 +470,32 @@ class KillTrackerOverlay:
             self._custom_opacity = opacity
         except Exception as e:
             logger.debug(f"Error setting overlay opacity: {e}", exc_info=True)
+    
+    def set_enabled_stats(self, enabled_stats: Dict[str, bool]):
+        """Update which stats are enabled and recreate UI.
+        
+        Args:
+            enabled_stats: Dictionary of stat names to boolean indicating which stats to show
+        """
+        self.enabled_stats = enabled_stats
+        
+        # Recreate UI with new stat configuration
+        try:
+            # Destroy existing widgets
+            for widget in self.root.winfo_children():
+                widget.destroy()
+
+            # Recreate UI
+            self._create_ui()
+
+            # Update window size
+            self._update_window_size()
+
+            # Update stats display
+            self.update_stats()
+
+        except Exception as e:
+            logger.debug(f"Error updating enabled stats: {e}", exc_info=True)
     
     def change_theme(self, theme_name: str):
         """Change the overlay theme."""
@@ -470,9 +524,8 @@ class KillTrackerOverlay:
             except Exception:
                 pass
             
-            # Ensure proper size
-            self.root.geometry(f"180x150+{self.position[0]}+{self.position[1]}")
-            self.root.resizable(False, False)
+            # Update window size
+            self._update_window_size()
 
             # Update lock indicator after theme change
             self._update_lock_indicator()
@@ -487,7 +540,8 @@ class KillTrackerOverlay:
         """Set the overlay position."""
         try:
             self.position = (x, y)
-            self.root.geometry(f"180x150+{x}+{y}")
+            # Use dynamic size calculation
+            self._update_window_size()
         except Exception as e:
             logger.debug(f"Error setting position: {e}", exc_info=True)
 
@@ -511,13 +565,14 @@ class KillTrackerOverlay:
             pass
 
 
-def create_overlay(gui, theme: str = "dark", position: Optional[Tuple[int, int]] = None) -> KillTrackerOverlay:
+def create_overlay(gui, theme: str = "dark", position: Optional[Tuple[int, int]] = None, enabled_stats: Optional[Dict[str, bool]] = None) -> KillTrackerOverlay:
     """Create and return a new KillTrackerOverlay instance.
 
     Args:
         gui: The main GUI instance
         theme: Theme name (default: "dark")
         position: Optional (x, y) position tuple
+        enabled_stats: Optional dictionary of stat names to boolean indicating which stats to show
 
     Returns:
         KillTrackerOverlay instance
@@ -530,6 +585,6 @@ def create_overlay(gui, theme: str = "dark", position: Optional[Tuple[int, int]]
         except Exception:
             position = (50, 50)
 
-    overlay = KillTrackerOverlay(gui, theme=theme, position=position)
+    overlay = KillTrackerOverlay(gui, theme=theme, position=position, enabled_stats=enabled_stats)
     return overlay
 
