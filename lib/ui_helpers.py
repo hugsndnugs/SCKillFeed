@@ -183,6 +183,14 @@ def setup_styles():
                 font=(FONT_FAMILY, 9),
             )
             style.map("Treeview", background=[("selected", THEME_ACCENT_PRIMARY)])
+            # Treeview heading styling - this controls the column header cells
+            style.configure(
+                "Treeview.Heading",
+                background=THEME_BG_PRIMARY,
+                foreground=THEME_TEXT_PRIMARY,
+                font=(FONT_FAMILY, 9, "bold"),
+            )
+            style.map("Treeview.Heading", background=[("active", THEME_BG_PRIMARY)])
         except Exception:
             pass
 
@@ -201,6 +209,22 @@ def setup_styles():
                 background=THEME_BG_TERTIARY,
                 foreground=THEME_TEXT_PRIMARY,
                 fieldbackground=THEME_BG_TERTIARY,
+            )
+        except Exception:
+            pass
+
+        # Checkbutton styling
+        try:
+            style.configure(
+                "TCheckbutton",
+                background=THEME_BG_SECONDARY,
+                foreground=THEME_TEXT_PRIMARY,
+                font=(FONT_FAMILY, 10),
+            )
+            style.map(
+                "TCheckbutton",
+                background=[("active", THEME_BG_SECONDARY)],
+                foreground=[("active", THEME_TEXT_PRIMARY)],
             )
         except Exception:
             pass
