@@ -48,6 +48,7 @@ from lib.validation_helpers import validate_player_name
 from lib.config_helpers import load_config, validate_and_apply_config, save_config
 from lib import export_helpers
 from lib import monitor_helpers
+from lib.overlay_helpers import create_overlay, OVERLAY_THEMES
 
 from constants import (
     KILL_LINE_RE,
@@ -241,6 +242,10 @@ class StarCitizenKillFeedGUI:
             "killers": Counter(),
         }
 
+        # Overlay instance
+        self.overlay = None
+        self._overlay_update_job = None
+
         # Regex for parsing kill events - compiled once for efficiency
         self.KILL_LINE_RE = KILL_LINE_RE
 
@@ -321,6 +326,12 @@ class StarCitizenKillFeedGUI:
         except Exception:
             pass
 
+        # Initialize overlay
+        try:
+            self._init_overlay()
+        except Exception:
+            logger.debug("Failed to initialize overlay", exc_info=True)
+
         # Auto-start monitoring if we have a configured player name and a valid log path
         try:
             if (
@@ -358,6 +369,14 @@ class StarCitizenKillFeedGUI:
                     logger.debug("Failed to save gui_scale on close", exc_info=True)
             except Exception:
                 logger.debug("Failed to save gui_scale on close", exc_info=True)
+            
+            # Destroy overlay
+            try:
+                if self.overlay:
+                    self.overlay.destroy()
+                    self.overlay = None
+            except Exception:
+                pass
         finally:
             # Destroy the visible window and the hidden root (if present)
             try:
@@ -1197,6 +1216,13 @@ class StarCitizenKillFeedGUI:
                 event = f"{kill['killer']} killed {kill['victim']} ({kill['weapon']})"
 
             self.recent_tree.insert("", "end", values=(time_str, event))
+        
+        # Update overlay if it exists and is visible
+        try:
+            if self.overlay and self.overlay.is_visible:
+                self.overlay.update_stats()
+        except Exception:
+            logger.debug("Failed to update overlay stats", exc_info=True)
 
     def debounced_update_statistics(self):
         """Debounced statistics update to prevent excessive UI updates with thread safety"""
@@ -1270,6 +1296,141 @@ class StarCitizenKillFeedGUI:
         }
         self.update_statistics_display()
         self.status_var.set("Kill feed cleared")
+    
+    def _init_overlay(self):
+        """Initialize the kill tracker overlay."""
+        try:
+            # Ensure overlay section exists in config
+            if "overlay" not in self.config:
+                self.config["overlay"] = {}
+            
+            # Load overlay config
+            overlay_enabled = self.config["overlay"].get("enabled", "false").lower() == "true"
+            overlay_theme = self.config["overlay"].get("theme", "dark")
+            
+            # Get opacity from config
+            try:
+                overlay_opacity = float(self.config["overlay"].get("opacity", "0.92"))
+                overlay_opacity = max(0.3, min(1.0, overlay_opacity))
+            except (ValueError, TypeError):
+                overlay_opacity = 0.92
+            
+            # Get position from config or use default
+            try:
+                pos_x = int(self.config["overlay"].get("position_x", "0"))
+                pos_y = int(self.config["overlay"].get("position_y", "0"))
+                if pos_x == 0 and pos_y == 0:
+                    # Use default position (top-right)
+                    try:
+                        screen_width = self.root.winfo_screenwidth()
+                        pos_x = screen_width - 200
+                        pos_y = 50
+                    except Exception:
+                        pos_x, pos_y = 50, 50
+                position = (pos_x, pos_y)
+            except (ValueError, TypeError):
+                try:
+                    screen_width = self.root.winfo_screenwidth()
+                    position = (screen_width - 200, 50)
+                except Exception:
+                    position = (50, 50)
+            
+            # Create overlay
+            self.overlay = create_overlay(self, theme=overlay_theme, position=position)
+            
+            # Set opacity from config (applies the configured opacity even if it's the default)
+            self.overlay.set_opacity(overlay_opacity)
+            
+            # Set lock state from config
+            try:
+                overlay_locked = self.config["overlay"].get("locked", "false").lower() == "true"
+                self.overlay.set_locked(overlay_locked)
+            except Exception:
+                pass
+            
+            # Show if enabled
+            if overlay_enabled:
+                self.overlay.show()
+                # Start overlay update loop
+                self._start_overlay_updates()
+                
+        except Exception as e:
+            logger.debug(f"Error initializing overlay: {e}", exc_info=True)
+            self.overlay = None
+    
+    def _start_overlay_updates(self):
+        """Start periodic overlay updates."""
+        try:
+            if self.overlay and self.overlay.is_visible:
+                self.overlay.update_stats()
+            # Schedule next update (update every 500ms for smooth updates)
+            if self._overlay_update_job:
+                try:
+                    if hasattr(self.root, "after_cancel"):
+                        self.root.after_cancel(self._overlay_update_job)
+                except Exception:
+                    pass
+            self._overlay_update_job = self.safe_after(500, self._start_overlay_updates)
+        except Exception:
+            logger.debug("Error in overlay update loop", exc_info=True)
+    
+    def toggle_overlay(self):
+        """Toggle overlay visibility."""
+        try:
+            if not self.overlay:
+                self._init_overlay()
+            
+            if self.overlay:
+                self.overlay.toggle()
+                
+                # Update config
+                self.config.setdefault("overlay", {})
+                self.config["overlay"]["enabled"] = "true" if self.overlay.is_visible else "false"
+                save_config(self.config, self.config_path)
+                
+                # Start/stop update loop
+                if self.overlay.is_visible:
+                    self._start_overlay_updates()
+                else:
+                    if self._overlay_update_job:
+                        try:
+                            if hasattr(self.root, "after_cancel"):
+                                self.root.after_cancel(self._overlay_update_job)
+                        except Exception:
+                            pass
+                        self._overlay_update_job = None
+        except Exception as e:
+            logger.debug(f"Error toggling overlay: {e}", exc_info=True)
+    
+    def change_overlay_theme(self, theme_name: str):
+        """Change overlay theme."""
+        try:
+            if not self.overlay:
+                self._init_overlay()
+            
+            if self.overlay:
+                self.overlay.change_theme(theme_name)
+                self.config.setdefault("overlay", {})
+                self.config["overlay"]["theme"] = theme_name
+                save_config(self.config, self.config_path)
+        except Exception as e:
+            logger.debug(f"Error changing overlay theme: {e}", exc_info=True)
+    
+    def change_overlay_opacity(self, opacity: float):
+        """Change overlay opacity."""
+        try:
+            if not self.overlay:
+                self._init_overlay()
+            
+            if self.overlay:
+                # Clamp opacity between 0.3 and 1.0
+                opacity = max(0.3, min(1.0, float(opacity)))
+                self.overlay.set_opacity(opacity)
+                self.config.setdefault("overlay", {})
+                self.config["overlay"]["opacity"] = str(opacity)
+                save_config(self.config, self.config_path)
+        except Exception as e:
+            logger.debug(f"Error changing overlay opacity: {e}", exc_info=True)
 
     def export_data(self):
         """Export kill data to file"""
