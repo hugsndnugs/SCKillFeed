@@ -215,11 +215,11 @@ class TestKillTrackerOverlay(unittest.TestCase):
         
         overlay.update_stats()
         
-        # Check that labels exist
-        self.assertIsNotNone(overlay.kills_label)
-        self.assertIsNotNone(overlay.deaths_label)
-        self.assertIsNotNone(overlay.kd_label)
-        self.assertIsNotNone(overlay.streak_label)
+        # Check that labels exist in stat_widgets dictionary
+        self.assertIsNotNone(overlay.stat_widgets.get("kills"))
+        self.assertIsNotNone(overlay.stat_widgets.get("deaths"))
+        self.assertIsNotNone(overlay.stat_widgets.get("kd"))
+        self.assertIsNotNone(overlay.stat_widgets.get("streak"))
     
     def test_overlay_kd_calculation(self, mock_label, mock_frame, mock_toplevel):
         """Test K/D ratio calculation in overlay."""
@@ -243,10 +243,12 @@ class TestKillTrackerOverlay(unittest.TestCase):
         
         overlay.update_stats()
         # Check that config was called with correct K/D value
-        calls = [call for call in overlay.kd_label.config.call_args_list 
+        kd_widget = overlay.stat_widgets.get("kd")
+        self.assertIsNotNone(kd_widget)
+        calls = [call for call in kd_widget.config.call_args_list 
                  if 'text' in (call[0][0] if call[0] else {}) or 
                     (call[1] and 'text' in call[1])]
-        self.assertTrue(len(calls) > 0 or hasattr(overlay.kd_label, 'config'))
+        self.assertTrue(len(calls) > 0 or hasattr(kd_widget, 'config'))
         
         # Test case: 0 deaths
         self.gui.stats["total_kills"] = 7
