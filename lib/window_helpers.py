@@ -2,8 +2,9 @@
 
 These helpers operate on a GUI-like object (expects attributes such as
 `root`, `_resize_border`, `_resizing`, `_resize_dir`, `_resize_start_x`,
-`_resize_start_y`, and `_start_geom`). They are structured as standalone
-functions to improve testability while keeping event binding in the GUI.
+`_resize_start_y`, `_start_geom`, `_resize_left`, and `_resize_top`).
+They are structured as standalone functions to improve testability while
+keeping event binding in the GUI.
 """
 
 import logging
@@ -76,6 +77,11 @@ def on_root_button_press(gui, event):
                     gui.root.winfo_width(),
                     gui.root.winfo_height(),
                 )
+                # Determine which edges are being resized from the start
+                # to avoid jumping when cursor position crosses window center
+                sx, sy, sw, sh = gui._start_geom
+                gui._resize_left = event.x_root < sx + sw / 2
+                gui._resize_top = event.y_root < sy + sh / 2
             except Exception:
                 gui._resizing = False
     except Exception:
@@ -103,36 +109,40 @@ def on_root_drag(gui, event):
 
         new_x, new_y, new_w, new_h = sx, sy, sw, sh
 
+        # Use the pre-determined resize direction to avoid jumping
+        resize_left = getattr(gui, "_resize_left", False)
+        resize_top = getattr(gui, "_resize_top", False)
+
         if dir == "size_we":
-            if event.x_root < sx + sw / 2:
+            if resize_left:
                 new_x = sx + dx
                 new_w = sw - dx
             else:
                 new_w = sw + dx
         elif dir == "size_ns":
-            if event.y_root < sy + sh / 2:
+            if resize_top:
                 new_y = sy + dy
                 new_h = sh - dy
             else:
                 new_h = sh + dy
         elif dir == "size_nw_se":
-            if event.x_root < sx + sw / 2:
+            if resize_left:
                 new_x = sx + dx
                 new_w = sw - dx
             else:
                 new_w = sw + dx
-            if event.y_root < sy + sh / 2:
+            if resize_top:
                 new_y = sy + dy
                 new_h = sh - dy
             else:
                 new_h = sh + dy
         elif dir == "size_ne_sw":
-            if event.x_root > sx + sw / 2:
-                new_w = sw + dx
-            else:
+            if resize_left:
                 new_x = sx + dx
                 new_w = sw - dx
-            if event.y_root < sy + sh / 2:
+            else:
+                new_w = sw + dx
+            if resize_top:
                 new_y = sy + dy
                 new_h = sh - dy
             else:
