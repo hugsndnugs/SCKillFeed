@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, refactoring-and-ui-enhancements ]
+    branches: [ main, Refactoring-upstream-features ]
   pull_request:
-    branches: [ main, refactoring-and-ui-enhancements ]
+    branches: [ main, Refactoring-upstream-features ]
 
 permissions:
   contents: read
