@@ -183,6 +183,14 @@ def setup_styles():
                 font=(FONT_FAMILY, 9),
             )
             style.map("Treeview", background=[("selected", THEME_ACCENT_PRIMARY)])
+            # Treeview heading styling - this controls the column header cells
+            style.configure(
+                "Treeview.Heading",
+                background=THEME_BG_PRIMARY,
+                foreground=THEME_TEXT_PRIMARY,
+                font=(FONT_FAMILY, 9, "bold"),
+            )
+            style.map("Treeview.Heading", background=[("active", THEME_BG_PRIMARY)])
         except Exception:
             pass
 
@@ -205,6 +213,38 @@ def setup_styles():
         except Exception:
             pass
 
+        # Checkbutton styling
+        try:
+            style.configure(
+                "TCheckbutton",
+                background=THEME_BG_SECONDARY,
+                foreground=THEME_TEXT_PRIMARY,
+                font=(FONT_FAMILY, 10),
+            )
+            style.map(
+                "TCheckbutton",
+                background=[("active", THEME_BG_SECONDARY)],
+                foreground=[("active", THEME_TEXT_PRIMARY)],
+            )
+        except Exception:
+            pass
+
+        # Radiobutton styling
+        try:
+            style.configure(
+                "TRadiobutton",
+                background=THEME_BG_SECONDARY,
+                foreground=THEME_TEXT_PRIMARY,
+                font=(FONT_FAMILY, 10),
+            )
+            style.map(
+                "TRadiobutton",
+                background=[("active", THEME_BG_SECONDARY), ("selected", THEME_BG_SECONDARY)],
+                foreground=[("active", THEME_TEXT_PRIMARY)],
+            )
+        except Exception:
+            pass
+
         # Labelframe tweaks
         try:
             style.configure(
@@ -218,6 +258,25 @@ def setup_styles():
                 background=THEME_BG_SECONDARY,
                 foreground=THEME_ACCENT_PRIMARY,
                 font=(FONT_FAMILY, 11, "bold"),
+            )
+        except Exception:
+            pass
+
+        # Scrollbar styling (dark theme)
+        try:
+            style.configure(
+                "TScrollbar",
+                background=THEME_BG_PRIMARY,
+                troughcolor=THEME_BG_PRIMARY,
+                borderwidth=0,
+                arrowcolor=THEME_TEXT_SECONDARY,
+                darkcolor=THEME_BG_PRIMARY,
+                lightcolor=THEME_BG_PRIMARY,
+            )
+            style.map(
+                "TScrollbar",
+                background=[("active", THEME_BG_TERTIARY)],
+                arrowcolor=[("active", THEME_TEXT_PRIMARY)],
             )
         except Exception:
             pass
@@ -693,6 +752,405 @@ def create_settings_tab(gui):
             style="Success.TButton",
         )
         save_button.pack(pady=25)
+
+        # Overlay settings section
+        # Create overlay frame first to ensure it's always visible
+        overlay_frame = ttk.LabelFrame(
+            settings_frame, text="🎯 Kill Tracker Overlay", style="TLabelframe"
+        )
+        overlay_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+        
+        # Create scrollable container for overlay settings
+        overlay_canvas = tk.Canvas(
+            overlay_frame,
+            bg=THEME_BG_SECONDARY,
+            highlightthickness=0,
+        )
+        overlay_scrollbar = ttk.Scrollbar(
+            overlay_frame,
+            orient="vertical",
+            command=overlay_canvas.yview,
+            style="TScrollbar"
+        )
+        overlay_scrollable_frame = ttk.Frame(overlay_canvas)
+        
+        # Configure scrolling
+        def update_scroll_region(event=None):
+            overlay_canvas.configure(scrollregion=overlay_canvas.bbox("all"))
+        
+        overlay_scrollable_frame.bind("<Configure>", update_scroll_region)
+        
+        # Create window in canvas for the scrollable frame
+        canvas_frame = overlay_canvas.create_window(
+            (0, 0),
+            window=overlay_scrollable_frame,
+            anchor="nw"
+        )
+        
+        # Bind canvas resize to update scroll region and frame width
+        def on_canvas_configure(event):
+            canvas_width = event.width
+            overlay_canvas.itemconfig(canvas_frame, width=canvas_width)
+            update_scroll_region()
+        
+        overlay_canvas.bind("<Configure>", on_canvas_configure)
+        
+        # Pack canvas and scrollbar
+        overlay_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        overlay_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        overlay_canvas.configure(yscrollcommand=overlay_scrollbar.set)
+        
+        # Mouse wheel scrolling (Windows)
+        def on_mousewheel(event):
+            overlay_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        
+        # Bind mouse wheel to canvas
+        overlay_canvas.bind("<MouseWheel>", on_mousewheel)
+        
+        # Use overlay_scrollable_frame instead of overlay_frame for content
+        content_frame = overlay_scrollable_frame
+        
+        try:
+            # Ensure overlay section exists in config
+            if "overlay" not in gui.config:
+                gui.config["overlay"] = {}
+
+            # Overlay toggle
+            overlay_toggle_frame = ttk.Frame(content_frame)
+            overlay_toggle_frame.pack(fill=tk.X, padx=15, pady=(15, 5))
+
+            tk.Label(
+                overlay_toggle_frame,
+                text="Show Overlay:",
+                bg=THEME_BG_PRIMARY,
+                fg=THEME_TEXT_PRIMARY,
+                font=(FONT_FAMILY, 10, "bold"),
+            ).pack(side=tk.LEFT, padx=(0, 10))
+
+            overlay_enabled = (
+                gui.config["overlay"].get("enabled", "false").lower() == "true"
+            )
+            gui.overlay_enabled_var = tk.BooleanVar(value=overlay_enabled)
+
+            def on_overlay_toggle():
+                try:
+                    gui.toggle_overlay()
+                except Exception as e:
+                    logger.debug("Error toggling overlay", exc_info=True)
+                    import tkinter.messagebox as msgbox
+                    try:
+                        msgbox.showerror("Error", f"Failed to toggle overlay: {e}")
+                    except Exception:
+                        pass
+
+            overlay_toggle_btn = ttk.Button(
+                overlay_toggle_frame,
+                text="Toggle Overlay",
+                command=on_overlay_toggle,
+                style="TButton",
+            )
+            overlay_toggle_btn.pack(side=tk.LEFT)
+
+            # Lock overlay control
+            lock_frame = tk.Frame(content_frame, bg=THEME_BG_SECONDARY)
+            lock_frame.pack(fill=tk.X, padx=15, pady=(5, 5))
+
+            tk.Label(
+                lock_frame,
+                text="Lock Position:",
+                bg=THEME_BG_SECONDARY,
+                fg=THEME_TEXT_PRIMARY,
+                font=(FONT_FAMILY, 9),
+                anchor="w",
+            ).pack(side=tk.LEFT, padx=(0, 10))
+
+            # Get current lock state from config
+            try:
+                overlay_locked = gui.config["overlay"].get("locked", "false").lower() == "true"
+            except Exception:
+                overlay_locked = False
+
+            gui.overlay_locked_var = tk.BooleanVar(value=overlay_locked)
+
+            def on_lock_toggle():
+                try:
+                    if hasattr(gui, "overlay") and gui.overlay:
+                        # Get the new state from the checkbox
+                        new_locked = gui.overlay_locked_var.get()
+                        gui.overlay.set_locked(new_locked)
+                        gui.config.setdefault("overlay", {})
+                        gui.config["overlay"]["locked"] = "true" if new_locked else "false"
+                        from lib.config_helpers import save_config
+                        save_config(gui.config, gui.config_path)
+                except Exception as e:
+                    logger.debug("Error toggling overlay lock", exc_info=True)
+
+            lock_check = ttk.Checkbutton(
+                lock_frame,
+                text="🔒 Lock overlay position (prevents dragging)",
+                variable=gui.overlay_locked_var,
+                command=on_lock_toggle,
+            )
+            lock_check.pack(side=tk.LEFT)
+            
+            # Apply initial lock state if overlay already exists
+            try:
+                if hasattr(gui, "overlay") and gui.overlay:
+                    gui.overlay.set_locked(overlay_locked)
+            except Exception:
+                pass
+
+            # Theme selection
+            theme_label_frame = ttk.Frame(content_frame)
+            theme_label_frame.pack(fill=tk.X, padx=15, pady=5)
+
+            tk.Label(
+                theme_label_frame,
+                text="Overlay Theme:",
+                bg=THEME_BG_PRIMARY,
+                fg=THEME_TEXT_PRIMARY,
+                font=(FONT_FAMILY, 10, "bold"),
+            ).pack(anchor="w", pady=(5, 5))
+
+            # Use regular Frame for better background control
+            theme_frame = tk.Frame(content_frame, bg=THEME_BG_SECONDARY)
+            theme_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
+
+            try:
+                from lib.overlay_helpers import OVERLAY_THEMES
+
+                current_theme = gui.config["overlay"].get("theme", "dark")
+                gui.overlay_theme_var = tk.StringVar(value=current_theme)
+
+                # Create a custom style for overlay theme radio buttons to ensure dark background
+                try:
+                    overlay_radio_style = ttk.Style()
+                    overlay_radio_style.configure(
+                        "OverlayTheme.TRadiobutton",
+                        background=THEME_BG_SECONDARY,
+                        foreground=THEME_TEXT_PRIMARY,
+                        font=(FONT_FAMILY, 10),
+                    )
+                    overlay_radio_style.map(
+                        "OverlayTheme.TRadiobutton",
+                        background=[
+                            ("active", THEME_BG_SECONDARY),
+                            ("selected", THEME_BG_SECONDARY),
+                        ],
+                        foreground=[("active", THEME_TEXT_PRIMARY)],
+                    )
+                except Exception:
+                    overlay_radio_style = None
+
+                for theme_name in OVERLAY_THEMES.keys():
+                    theme_btn = ttk.Radiobutton(
+                        theme_frame,
+                        text=theme_name.capitalize(),
+                        variable=gui.overlay_theme_var,
+                        value=theme_name,
+                        command=lambda t=theme_name: gui.change_overlay_theme(t),
+                        style="OverlayTheme.TRadiobutton" if overlay_radio_style else None,
+                    )
+                    theme_btn.pack(side=tk.LEFT, padx=(0, 10))
+            except Exception as e:
+                logger.debug(f"Error creating theme selector: {e}", exc_info=True)
+                tk.Label(
+                    theme_frame,
+                    text="Error loading themes",
+                    bg=THEME_BG_PRIMARY,
+                    fg=THEME_ACCENT_DANGER,
+                    font=(FONT_FAMILY, 9),
+                ).pack()
+
+            # Opacity control
+            opacity_label_frame = ttk.Frame(content_frame)
+            opacity_label_frame.pack(fill=tk.X, padx=15, pady=5)
+
+            tk.Label(
+                opacity_label_frame,
+                text="Overlay Opacity:",
+                bg=THEME_BG_PRIMARY,
+                fg=THEME_TEXT_PRIMARY,
+                font=(FONT_FAMILY, 10, "bold"),
+            ).pack(anchor="w", pady=(5, 5))
+
+            opacity_control_frame = tk.Frame(content_frame, bg=THEME_BG_SECONDARY)
+            opacity_control_frame.pack(fill=tk.X, padx=15, pady=(0, 5))
+
+            # Get current opacity from config (default 0.92)
+            try:
+                current_opacity = float(gui.config["overlay"].get("opacity", "0.92"))
+                # Clamp between 0.3 and 1.0
+                current_opacity = max(0.3, min(1.0, current_opacity))
+            except (ValueError, TypeError):
+                current_opacity = 0.92
+
+            gui.overlay_opacity_var = tk.DoubleVar(value=current_opacity)
+
+            opacity_scale = ttk.Scale(
+                opacity_control_frame,
+                from_=0.3,
+                to=1.0,
+                variable=gui.overlay_opacity_var,
+                orient=tk.HORIZONTAL,
+                length=300,
+            )
+            opacity_scale.pack(side=tk.LEFT, padx=(0, 10))
+
+            opacity_value_var = tk.StringVar(value=f"{int(current_opacity * 100)}%")
+            opacity_value_label = tk.Label(
+                opacity_control_frame,
+                textvariable=opacity_value_var,
+                bg=THEME_BG_SECONDARY,
+                fg=THEME_TEXT_SECONDARY,
+                font=(FONT_FAMILY, 9),
+                width=5,
+            )
+            opacity_value_label.pack(side=tk.LEFT)
+
+            # Update opacity when scale changes
+            def update_opacity(*args):
+                try:
+                    val = gui.overlay_opacity_var.get()
+                    opacity_value_var.set(f"{int(val * 100)}%")
+                    # Update overlay if it exists
+                    if hasattr(gui, "overlay") and gui.overlay:
+                        gui.change_overlay_opacity(val)
+                except Exception as e:
+                    logger.debug(f"Error updating opacity: {e}", exc_info=True)
+
+            gui.overlay_opacity_var.trace("w", update_opacity)
+            # Also bind to scale release for immediate feedback
+            opacity_scale.configure(command=lambda v: update_opacity())
+
+            # Overlay stats configuration
+            stats_label_frame = ttk.Frame(content_frame)
+            stats_label_frame.pack(fill=tk.X, padx=15, pady=(5, 5))
+
+            tk.Label(
+                stats_label_frame,
+                text="Display Stats:",
+                bg=THEME_BG_PRIMARY,
+                fg=THEME_TEXT_PRIMARY,
+                font=(FONT_FAMILY, 10, "bold"),
+            ).pack(anchor="w", pady=(5, 5))
+            
+            # Import overlay helpers to get available stats
+            try:
+                from lib.overlay_helpers import KillTrackerOverlay
+                
+                # Stats checkboxes frame
+                stats_checkbox_frame = tk.Frame(content_frame, bg=THEME_BG_SECONDARY)
+                stats_checkbox_frame.pack(fill=tk.X, padx=15, pady=(0, 5))
+                
+                # Create checkboxes for each available stat
+                gui.overlay_stats_vars = {}
+                
+                # Get default enabled stats from config
+                try:
+                    overlay_stats_config = gui.config["overlay"].get("enabled_stats", "")
+                    # Parse comma-separated list of enabled stats
+                    if overlay_stats_config:
+                        enabled_stats_list = [s.strip() for s in overlay_stats_config.split(",")]
+                        default_enabled = {stat: stat in enabled_stats_list for stat in KillTrackerOverlay.AVAILABLE_STATS.keys()}
+                    else:
+                        # Default: kills, deaths, kd, streak
+                        default_enabled = {
+                            "kills": True,
+                            "deaths": True,
+                            "kd": True,
+                            "streak": True,
+                            "max_kill_streak": False,
+                            "max_death_streak": False,
+                        }
+                except Exception:
+                    default_enabled = {
+                        "kills": True,
+                        "deaths": True,
+                        "kd": True,
+                        "streak": True,
+                        "max_kill_streak": False,
+                        "max_death_streak": False,
+                    }
+                
+                # Create checkboxes in two columns
+                left_column = tk.Frame(stats_checkbox_frame, bg=THEME_BG_SECONDARY)
+                left_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
+                
+                right_column = tk.Frame(stats_checkbox_frame, bg=THEME_BG_SECONDARY)
+                right_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+                
+                stat_items = list(KillTrackerOverlay.AVAILABLE_STATS.items())
+                mid_point = len(stat_items) // 2 + len(stat_items) % 2
+                
+                def create_stat_update_handler():
+                    """Create a handler that updates overlay stats when any checkbox changes."""
+                    def on_stat_toggle(*args):
+                        try:
+                            if hasattr(gui, "overlay") and gui.overlay:
+                                # Build enabled stats dict from checkboxes
+                                enabled_stats = {
+                                    key: var.get()
+                                    for key, var in gui.overlay_stats_vars.items()
+                                }
+                                gui.overlay.set_enabled_stats(enabled_stats)
+                                
+                                # Save to config
+                                enabled_list = [k for k, v in enabled_stats.items() if v]
+                                gui.config.setdefault("overlay", {})
+                                gui.config["overlay"]["enabled_stats"] = ",".join(enabled_list)
+                                save_config(gui.config, gui.config_path)
+                        except Exception as e:
+                            logger.debug(f"Error updating overlay stats: {e}", exc_info=True)
+                    return on_stat_toggle
+                
+                # Single handler for all checkboxes
+                stat_update_handler = create_stat_update_handler()
+                
+                for idx, (stat_name, stat_config) in enumerate(stat_items):
+                    var = tk.BooleanVar(value=default_enabled.get(stat_name, False))
+                    gui.overlay_stats_vars[stat_name] = var
+                    
+                    # Trace changes to the variable
+                    var.trace("w", stat_update_handler)
+                    
+                    # Determine which column
+                    column_frame = left_column if idx < mid_point else right_column
+                    
+                    checkbox = ttk.Checkbutton(
+                        column_frame,
+                        text=stat_config["label"],
+                        variable=var,
+                    )
+                    checkbox.pack(anchor="w", pady=2)
+                    
+            except Exception as e:
+                logger.debug(f"Error creating stat configuration: {e}", exc_info=True)
+
+            # Info text
+            info_label = tk.Label(
+                content_frame,
+                text="💡 Tip: Click and drag the overlay to reposition it. The overlay stays on top of other windows.",
+                bg=THEME_BG_PRIMARY,
+                fg=THEME_TEXT_SECONDARY,
+                font=(FONT_FAMILY, 9),
+                justify=tk.LEFT,
+                wraplength=600,
+            )
+            info_label.pack(anchor="w", padx=15, pady=(0, 15))
+        except Exception as e:
+            logger.error(f"Error creating overlay settings section: {e}", exc_info=True)
+            # Show error in the already-created overlay frame
+            error_label = tk.Label(
+                content_frame,
+                text=f"Error loading overlay settings: {e}",
+                bg=THEME_BG_PRIMARY,
+                fg=THEME_ACCENT_DANGER,
+                font=(FONT_FAMILY, 9),
+                wraplength=600,
+                justify=tk.LEFT,
+            )
+            error_label.pack(padx=15, pady=15)
     except Exception:
         logger.debug("create_settings_tab failed", exc_info=True)
 

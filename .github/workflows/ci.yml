@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, refactoring-and-ui-enhancements ]
+    branches: [ main, Refactoring-upstream-features ]
   pull_request:
-    branches: [ main, refactoring-and-ui-enhancements ]
+    branches: [ main, Refactoring-upstream-features ]
 
 permissions:
   contents: read
@@ -19,19 +19,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install runtime requirements
+          cache: 'pip'
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb
+      - name: Install runtime and test requirements
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then python -m pip install -r requirements.txt || true; fi
+          if [ -f requirements-test.txt ]; then python -m pip install -r requirements-test.txt; else python -m pip install pytest; fi
       - name: Run unit tests
         run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements-test.txt ]; then python -m pip install -r requirements-test.txt; else python -m pip install pytest; fi
-          # Install X virtual framebuffer so Tkinter can create a display in headless CI
-          sudo apt-get update && sudo apt-get install -y xvfb
           # Run tests under xvfb so GUI-related tests (tkinter) don't fail on headless runners
           xvfb-run -s "-screen 0 1920x1080x24" python -m pytest -vv
 
@@ -42,9 +44,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
       - name: Install build requirements
         run: |
           python -m pip install --upgrade pip

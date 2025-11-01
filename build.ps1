@@ -78,30 +78,23 @@ if ($OutDir -ne "") {
         if ($fileVersion -ne "") { $Version = $fileVersion }
     }
 
-    # Always produce a timestamped artifact; Version may be overridden from file
-    $timestamp = (Get-Date).ToUniversalTime().ToString('yyyyMMddHHmm')
-    if ($Version -eq "") { $Version = $timestamp }
+    # Use timestamp as fallback if no version is available
+    if ($Version -eq "") {
+        $timestamp = (Get-Date).ToUniversalTime().ToString('yyyyMMddHHmm')
+        $Version = $timestamp
+        Write-Host "Warning: No version specified and version.txt not found. Using timestamp as version: $Version"
+    }
 
     $sourceExe = Join-Path (Join-Path (Get-Location) 'dist') ($name + '.exe')
     if (Test-Path $sourceExe) {
         $releaseDir = Join-Path (Get-Location) $OutDir
         if (-not (Test-Path $releaseDir)) { New-Item -ItemType Directory -Path $releaseDir | Out-Null }
 
-        # Copy timestamped artifact
-        $tsName = "{0}-{1}.exe" -f $name, $timestamp
-        $tsPath = Join-Path $releaseDir $tsName
-        Copy-Item -Path $sourceExe -Destination $tsPath -Force
-        Write-Host "Copied timestamped build artifact to $($tsPath)"
-
-        # If version differs from timestamp, copy versioned artifact as well
-        if ($Version -ne $timestamp) {
-            $verName = "{0}-{1}.exe" -f $name, $Version
-            $verPath = Join-Path $releaseDir $verName
-            Copy-Item -Path $sourceExe -Destination $verPath -Force
-            Write-Host "Copied versioned build artifact to $($verPath)"
-        } else {
-            Write-Host "Version equals timestamp; only one artifact created ($($tsPath))."
-        }
+        # Copy versioned artifact
+        $verName = "{0}-{1}.exe" -f $name, $Version
+        $verPath = Join-Path $releaseDir $verName
+        Copy-Item -Path $sourceExe -Destination $verPath -Force
+        Write-Host "Copied versioned build artifact to $($verPath)"
     } else {
         Write-Host "Warning: expected built executable not found at $($sourceExe)"
     }

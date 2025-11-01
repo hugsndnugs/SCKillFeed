@@ -48,6 +48,23 @@ def load_config(config_path: str):
         if key not in config["user"]:
             config["user"][key] = value
 
+    # Overlay defaults
+    if "overlay" not in config:
+        config["overlay"] = {}
+    
+    overlay_defaults = {
+        "enabled": "false",
+        "theme": "dark",
+        "opacity": "0.92",
+        "locked": "false",
+        "position_x": "0",
+        "position_y": "0",
+    }
+    
+    for key, value in overlay_defaults.items():
+        if key not in config["overlay"]:
+            config["overlay"][key] = value
+
     return config
 
 
