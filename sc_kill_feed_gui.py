@@ -378,6 +378,40 @@ class StarCitizenKillFeedGUI:
     def _on_close(self):
         """Handler for window close to persist configuration before exit."""
         try:
+            # Cancel any pending timer jobs to prevent callbacks after window destruction
+            try:
+                if hasattr(self, "_timer_job") and self._timer_job is not None:
+                    try:
+                        if hasattr(self.root, "after_cancel"):
+                            self.root.after_cancel(self._timer_job)
+                    except Exception:
+                        pass
+                    self._timer_job = None
+            except Exception:
+                pass
+            
+            try:
+                if hasattr(self, "_overlay_update_job") and self._overlay_update_job is not None:
+                    try:
+                        if hasattr(self.root, "after_cancel"):
+                            self.root.after_cancel(self._overlay_update_job)
+                    except Exception:
+                        pass
+                    self._overlay_update_job = None
+            except Exception:
+                pass
+            
+            try:
+                if hasattr(self, "_update_timer") and self._update_timer is not None:
+                    try:
+                        if hasattr(self.root, "after_cancel"):
+                            self.root.after_cancel(self._update_timer)
+                    except Exception:
+                        pass
+                    self._update_timer = None
+            except Exception:
+                pass
+            
             # Persist gui_scale to config
             try:
                 self.config["user"]["gui_scale"] = str(self.gui_scale)
@@ -452,7 +486,7 @@ class StarCitizenKillFeedGUI:
     def _timer_tick(self):
         """Update the timer display and reschedule itself."""
         try:
-            if self.last_kill_time is None or self.last_kill_time == "":
+            if self.last_kill_time is None:
                 self.timer_var.set("--:--:--")
             else:
                 delta = datetime.now() - self.last_kill_time
@@ -682,8 +716,6 @@ class StarCitizenKillFeedGUI:
                     inc_btn.pack(side=tk.LEFT, padx=6)
                 except Exception:
                     pass
-            except Exception:
-                pass
             except Exception:
                 pass
         except Exception:
