@@ -36,11 +36,17 @@ from constants import (
     TAB_KILL_FEED,
     TAB_LIVE_FEED,
     TAB_STATISTICS,
+    TAB_LIFETIME_STATS,
     TAB_SETTINGS,
     TAB_EXPORT,
     LABEL_COMBAT_STATISTICS,
     LABEL_WEAPON_STATISTICS,
     LABEL_RECENT_ACTIVITY,
+    LABEL_LIFETIME_METRICS,
+    LABEL_LIFETIME_WEAPONS,
+    LABEL_LIFETIME_PVP,
+    LABEL_LIFETIME_TRENDS,
+    LABEL_LIFETIME_STREAKS,
     LABEL_PLAYER_CONFIG,
     LABEL_LOG_CONFIG,
     LABEL_EXPORT_OPTIONS,
@@ -51,6 +57,8 @@ from constants import (
     LABEL_YOUR_INGAME_NAME,
     LABEL_GAME_LOG_PATH,
     BUTTON_BROWSE_TEXT,
+    BUTTON_REFRESH_LIFETIME,
+    BUTTON_EXPORT_LIFETIME,
     CHECK_CSV_TEXT,
     CHECK_JSON_TEXT,
 )
@@ -1197,3 +1205,279 @@ def create_export_tab(gui):
         gui.export_status.pack(pady=15)
     except Exception:
         logger.debug("create_export_tab failed", exc_info=True)
+
+
+def create_lifetime_stats_tab(gui):
+    """Create the lifetime statistics tab on the given gui instance."""
+    try:
+        lifetime_frame = ttk.Frame(gui.notebook)
+        gui.notebook.add(lifetime_frame, text=TAB_LIFETIME_STATS)
+        
+        # Control buttons frame at top
+        control_frame = ttk.Frame(lifetime_frame, style=STYLE_CARD_FRAME)
+        control_frame.pack(fill=tk.X, padx=15, pady=15)
+        
+        buttons_frame = ttk.Frame(control_frame)
+        buttons_frame.pack(padx=15, pady=15)
+        
+        # Refresh button
+        refresh_btn = ttk.Button(
+            buttons_frame,
+            text=BUTTON_REFRESH_LIFETIME,
+            command=lambda: gui.refresh_lifetime_stats(),
+            style="TButton",
+        )
+        refresh_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Status label
+        gui.lifetime_status_label = tk.Label(
+            control_frame,
+            text="Click 'Refresh Stats' to load lifetime statistics from CSV",
+            bg=THEME_BG_TERTIARY,
+            fg=THEME_TEXT_SECONDARY,
+            font=(FONT_FAMILY, 10),
+            pady=5,
+        )
+        gui.lifetime_status_label.pack(padx=15, pady=(0, 15))
+        
+        # Create scrollable canvas for the content
+        canvas = tk.Canvas(
+            lifetime_frame,
+            bg=THEME_BG_SECONDARY,
+            highlightthickness=0,
+        )
+        scrollbar = ttk.Scrollbar(
+            lifetime_frame,
+            orient="vertical",
+            command=canvas.yview,
+        )
+        scrollable_frame = ttk.Frame(canvas)
+        
+        def update_scroll_region(event=None):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        
+        scrollable_frame.bind("<Configure>", update_scroll_region)
+        
+        def on_canvas_configure(event):
+            canvas_width = event.width
+            canvas.itemconfig(canvas_frame, width=canvas_width)
+            update_scroll_region()
+        
+        canvas_frame = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.bind("<Configure>", on_canvas_configure)
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Pack canvas and scrollbar
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Bind mouse wheel to canvas
+        def on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        canvas.bind("<MouseWheel>", on_mousewheel)
+        
+        # Core metrics section
+        metrics_frame = ttk.LabelFrame(
+            scrollable_frame, text=LABEL_LIFETIME_METRICS, style="TLabelframe"
+        )
+        metrics_frame.pack(fill=tk.X, padx=15, pady=15)
+        
+        metrics_grid = ttk.Frame(metrics_frame)
+        metrics_grid.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+        
+        # Create metric labels (will be updated when data loads)
+        gui.lifetime_kills_label = tk.Label(
+            metrics_grid,
+            text="Lifetime Kills: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_ACCENT_SUCCESS,
+            font=(FONT_FAMILY, 14, "bold"),
+            padx=20,
+            pady=10,
+        )
+        gui.lifetime_kills_label.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+        
+        gui.lifetime_deaths_label = tk.Label(
+            metrics_grid,
+            text="Lifetime Deaths: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_ACCENT_DANGER,
+            font=(FONT_FAMILY, 14, "bold"),
+            padx=20,
+            pady=10,
+        )
+        gui.lifetime_deaths_label.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+        
+        gui.lifetime_kd_label = tk.Label(
+            metrics_grid,
+            text="Lifetime K/D: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_ACCENT_PRIMARY,
+            font=(FONT_FAMILY, 14, "bold"),
+            padx=20,
+            pady=10,
+        )
+        gui.lifetime_kd_label.grid(row=0, column=2, padx=10, pady=5, sticky="ew")
+        
+        gui.lifetime_sessions_label = tk.Label(
+            metrics_grid,
+            text="Total Sessions: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_SECONDARY,
+            font=(FONT_FAMILY, 12),
+            padx=20,
+            pady=10,
+        )
+        gui.lifetime_sessions_label.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
+        
+        gui.lifetime_first_kill_label = tk.Label(
+            metrics_grid,
+            text="First Kill: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_SECONDARY,
+            font=(FONT_FAMILY, 12),
+            padx=20,
+            pady=10,
+        )
+        gui.lifetime_first_kill_label.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+        
+        gui.lifetime_last_kill_label = tk.Label(
+            metrics_grid,
+            text="Last Kill: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_SECONDARY,
+            font=(FONT_FAMILY, 12),
+            padx=20,
+            pady=10,
+        )
+        gui.lifetime_last_kill_label.grid(row=1, column=2, padx=10, pady=5, sticky="ew")
+        
+        metrics_grid.columnconfigure(0, weight=1)
+        metrics_grid.columnconfigure(1, weight=1)
+        metrics_grid.columnconfigure(2, weight=1)
+        
+        # Weapon statistics section
+        weapons_frame = ttk.LabelFrame(
+            scrollable_frame, text=LABEL_LIFETIME_WEAPONS, style="TLabelframe"
+        )
+        weapons_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        
+        weapons_info_frame = ttk.Frame(weapons_frame)
+        weapons_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
+        
+        gui.lifetime_most_used_label = tk.Label(
+            weapons_info_frame,
+            text="Most Used: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_PRIMARY,
+            font=(FONT_FAMILY, 11),
+            padx=10,
+        )
+        gui.lifetime_most_used_label.pack(side=tk.LEFT, padx=10)
+        
+        gui.lifetime_most_effective_label = tk.Label(
+            weapons_info_frame,
+            text="Most Effective: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_PRIMARY,
+            font=(FONT_FAMILY, 11),
+            padx=10,
+        )
+        gui.lifetime_most_effective_label.pack(side=tk.LEFT, padx=10)
+        
+        # Weapon mastery table
+        gui.lifetime_weapons_tree = ttk.Treeview(
+            weapons_frame,
+            columns=("kills", "deaths", "kd", "usage_pct"),
+            show="tree headings",
+            height=10,
+        )
+        gui.lifetime_weapons_tree.heading("#0", text="Weapon")
+        gui.lifetime_weapons_tree.heading("kills", text="Kills")
+        gui.lifetime_weapons_tree.heading("deaths", text="Deaths")
+        gui.lifetime_weapons_tree.heading("kd", text="K/D")
+        gui.lifetime_weapons_tree.heading("usage_pct", text="Usage %")
+        gui.lifetime_weapons_tree.column("#0", width=200)
+        gui.lifetime_weapons_tree.column("kills", width=80)
+        gui.lifetime_weapons_tree.column("deaths", width=80)
+        gui.lifetime_weapons_tree.column("kd", width=80)
+        gui.lifetime_weapons_tree.column("usage_pct", width=100)
+        gui.lifetime_weapons_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        
+        # PvP statistics section
+        pvp_frame = ttk.LabelFrame(
+            scrollable_frame, text=LABEL_LIFETIME_PVP, style="TLabelframe"
+        )
+        pvp_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        
+        pvp_info_frame = ttk.Frame(pvp_frame)
+        pvp_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
+        
+        gui.lifetime_most_killed_label = tk.Label(
+            pvp_info_frame,
+            text="Most Killed: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_PRIMARY,
+            font=(FONT_FAMILY, 11),
+            padx=10,
+        )
+        gui.lifetime_most_killed_label.pack(side=tk.LEFT, padx=10)
+        
+        gui.lifetime_nemesis_label = tk.Label(
+            pvp_info_frame,
+            text="Nemesis: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_ACCENT_DANGER,
+            font=(FONT_FAMILY, 11),
+            padx=10,
+        )
+        gui.lifetime_nemesis_label.pack(side=tk.LEFT, padx=10)
+        
+        # Rivals table
+        gui.lifetime_rivals_tree = ttk.Treeview(
+            pvp_frame,
+            columns=("killed_them", "killed_by_them", "h2h_kd"),
+            show="tree headings",
+            height=8,
+        )
+        gui.lifetime_rivals_tree.heading("#0", text="Player")
+        gui.lifetime_rivals_tree.heading("killed_them", text="Killed")
+        gui.lifetime_rivals_tree.heading("killed_by_them", text="Killed By")
+        gui.lifetime_rivals_tree.heading("h2h_kd", text="H2H K/D")
+        gui.lifetime_rivals_tree.column("#0", width=200)
+        gui.lifetime_rivals_tree.column("killed_them", width=100)
+        gui.lifetime_rivals_tree.column("killed_by_them", width=100)
+        gui.lifetime_rivals_tree.column("h2h_kd", width=100)
+        gui.lifetime_rivals_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        
+        # Streaks section
+        streaks_frame = ttk.LabelFrame(
+            scrollable_frame, text=LABEL_LIFETIME_STREAKS, style="TLabelframe"
+        )
+        streaks_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        
+        streaks_info_frame = ttk.Frame(streaks_frame)
+        streaks_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
+        
+        gui.lifetime_max_kill_streak_label = tk.Label(
+            streaks_info_frame,
+            text="Max Kill Streak: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_ACCENT_SUCCESS,
+            font=(FONT_FAMILY, 12, "bold"),
+            padx=10,
+        )
+        gui.lifetime_max_kill_streak_label.pack(side=tk.LEFT, padx=10)
+        
+        gui.lifetime_max_death_streak_label = tk.Label(
+            streaks_info_frame,
+            text="Max Death Streak: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_ACCENT_DANGER,
+            font=(FONT_FAMILY, 12, "bold"),
+            padx=10,
+        )
+        gui.lifetime_max_death_streak_label.pack(side=tk.LEFT, padx=10)
+        
+    except Exception:
+        logger.debug("create_lifetime_stats_tab failed", exc_info=True)
