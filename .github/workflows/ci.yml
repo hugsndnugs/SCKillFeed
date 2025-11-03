@@ -5,6 +5,7 @@ on:
     branches: [ main, refactoring-and-ui-enhancements ]
   pull_request:
     branches: [ main, refactoring-and-ui-enhancements ]
+  workflow_dispatch:
 
 permissions:
   contents: read
