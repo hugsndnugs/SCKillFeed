@@ -1220,11 +1220,11 @@ def create_lifetime_stats_tab(gui):
         buttons_frame = ttk.Frame(control_frame)
         buttons_frame.pack(padx=15, pady=15)
         
-        # Refresh button
+        # Refresh button (bypasses cache)
         refresh_btn = ttk.Button(
             buttons_frame,
             text=BUTTON_REFRESH_LIFETIME,
-            command=lambda: gui.refresh_lifetime_stats(),
+            command=lambda: gui.refresh_lifetime_stats(use_cache=False),
             style="TButton",
         )
         refresh_btn.pack(side=tk.LEFT, padx=5)
@@ -1238,7 +1238,15 @@ def create_lifetime_stats_tab(gui):
             font=(FONT_FAMILY, 10),
             pady=5,
         )
-        gui.lifetime_status_label.pack(padx=15, pady=(0, 15))
+        gui.lifetime_status_label.pack(padx=15, pady=(0, 5))
+        
+        # Progress bar (hidden by default)
+        gui.lifetime_progress_bar = ttk.Progressbar(
+            control_frame,
+            mode='indeterminate',
+            length=300,
+        )
+        # Don't pack initially - will be shown during loading
         
         # Create scrollable canvas for the content
         canvas = tk.Canvas(
@@ -1352,6 +1360,28 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_last_kill_label.grid(row=1, column=2, padx=10, pady=5, sticky="ew")
         
+        gui.lifetime_play_time_label = tk.Label(
+            metrics_grid,
+            text="Total Play Time: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_SECONDARY,
+            font=(FONT_FAMILY, 12),
+            padx=20,
+            pady=10,
+        )
+        gui.lifetime_play_time_label.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
+        
+        gui.lifetime_suicide_count_label = tk.Label(
+            metrics_grid,
+            text="Suicides: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_SECONDARY,
+            font=(FONT_FAMILY, 12),
+            padx=20,
+            pady=10,
+        )
+        gui.lifetime_suicide_count_label.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
+        
         metrics_grid.columnconfigure(0, weight=1)
         metrics_grid.columnconfigure(1, weight=1)
         metrics_grid.columnconfigure(2, weight=1)
@@ -1388,20 +1418,24 @@ def create_lifetime_stats_tab(gui):
         # Weapon mastery table
         gui.lifetime_weapons_tree = ttk.Treeview(
             weapons_frame,
-            columns=("kills", "deaths", "kd", "usage_pct"),
+            columns=("kills", "deaths", "kd", "usage_pct", "first_use", "last_use"),
             show="tree headings",
             height=10,
         )
-        gui.lifetime_weapons_tree.heading("#0", text="Weapon")
-        gui.lifetime_weapons_tree.heading("kills", text="Kills")
-        gui.lifetime_weapons_tree.heading("deaths", text="Deaths")
-        gui.lifetime_weapons_tree.heading("kd", text="K/D")
-        gui.lifetime_weapons_tree.heading("usage_pct", text="Usage %")
+        gui.lifetime_weapons_tree.heading("#0", text="Weapon", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "#0", False))
+        gui.lifetime_weapons_tree.heading("kills", text="Kills", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "kills", False, numeric=True))
+        gui.lifetime_weapons_tree.heading("deaths", text="Deaths", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "deaths", False, numeric=True))
+        gui.lifetime_weapons_tree.heading("kd", text="K/D", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "kd", False, numeric=True))
+        gui.lifetime_weapons_tree.heading("usage_pct", text="Usage %", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "usage_pct", False, numeric=True))
+        gui.lifetime_weapons_tree.heading("first_use", text="First Use", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "first_use", False))
+        gui.lifetime_weapons_tree.heading("last_use", text="Last Use", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "last_use", False))
         gui.lifetime_weapons_tree.column("#0", width=200)
         gui.lifetime_weapons_tree.column("kills", width=80)
         gui.lifetime_weapons_tree.column("deaths", width=80)
         gui.lifetime_weapons_tree.column("kd", width=80)
         gui.lifetime_weapons_tree.column("usage_pct", width=100)
+        gui.lifetime_weapons_tree.column("first_use", width=150)
+        gui.lifetime_weapons_tree.column("last_use", width=150)
         gui.lifetime_weapons_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
         
         # PvP statistics section
@@ -1436,18 +1470,20 @@ def create_lifetime_stats_tab(gui):
         # Rivals table
         gui.lifetime_rivals_tree = ttk.Treeview(
             pvp_frame,
-            columns=("killed_them", "killed_by_them", "h2h_kd"),
+            columns=("killed_them", "killed_by_them", "h2h_kd", "last_encounter"),
             show="tree headings",
             height=8,
         )
-        gui.lifetime_rivals_tree.heading("#0", text="Player")
-        gui.lifetime_rivals_tree.heading("killed_them", text="Killed")
-        gui.lifetime_rivals_tree.heading("killed_by_them", text="Killed By")
-        gui.lifetime_rivals_tree.heading("h2h_kd", text="H2H K/D")
+        gui.lifetime_rivals_tree.heading("#0", text="Player", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "#0", False))
+        gui.lifetime_rivals_tree.heading("killed_them", text="Killed", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "killed_them", False, numeric=True))
+        gui.lifetime_rivals_tree.heading("killed_by_them", text="Killed By", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "killed_by_them", False, numeric=True))
+        gui.lifetime_rivals_tree.heading("h2h_kd", text="H2H K/D", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "h2h_kd", False, numeric=True))
+        gui.lifetime_rivals_tree.heading("last_encounter", text="Last Encounter", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "last_encounter", False))
         gui.lifetime_rivals_tree.column("#0", width=200)
         gui.lifetime_rivals_tree.column("killed_them", width=100)
         gui.lifetime_rivals_tree.column("killed_by_them", width=100)
         gui.lifetime_rivals_tree.column("h2h_kd", width=100)
+        gui.lifetime_rivals_tree.column("last_encounter", width=150)
         gui.lifetime_rivals_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
         
         # Streaks section
@@ -1479,5 +1515,214 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_max_death_streak_label.pack(side=tk.LEFT, padx=10)
         
+        gui.lifetime_avg_kill_streak_label = tk.Label(
+            streaks_info_frame,
+            text="Avg Kill Streak: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_SECONDARY,
+            font=(FONT_FAMILY, 12),
+            padx=10,
+        )
+        gui.lifetime_avg_kill_streak_label.pack(side=tk.LEFT, padx=10)
+        
+        # Streak history table
+        gui.lifetime_streaks_tree = ttk.Treeview(
+            streaks_frame,
+            columns=("type", "length", "start", "end"),
+            show="tree headings",
+            height=8,
+        )
+        gui.lifetime_streaks_tree.heading("#0", text="Rank")
+        gui.lifetime_streaks_tree.heading("type", text="Type", command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "type", False))
+        gui.lifetime_streaks_tree.heading("length", text="Length", command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "length", False, numeric=True))
+        gui.lifetime_streaks_tree.heading("start", text="Start Date", command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "start", False))
+        gui.lifetime_streaks_tree.heading("end", text="End Date", command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "end", False))
+        gui.lifetime_streaks_tree.column("#0", width=60)
+        gui.lifetime_streaks_tree.column("type", width=100)
+        gui.lifetime_streaks_tree.column("length", width=80)
+        gui.lifetime_streaks_tree.column("start", width=150)
+        gui.lifetime_streaks_tree.column("end", width=150)
+        gui.lifetime_streaks_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        
+        # Performance Trends section
+        trends_frame = ttk.LabelFrame(
+            scrollable_frame, text=LABEL_LIFETIME_TRENDS, style="TLabelframe"
+        )
+        trends_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        
+        trends_info_frame = ttk.Frame(trends_frame)
+        trends_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
+        
+        gui.lifetime_best_day_label = tk.Label(
+            trends_info_frame,
+            text="Best Day: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_PRIMARY,
+            font=(FONT_FAMILY, 11),
+            padx=10,
+        )
+        gui.lifetime_best_day_label.pack(side=tk.LEFT, padx=10)
+        
+        gui.lifetime_best_week_label = tk.Label(
+            trends_info_frame,
+            text="Best Week: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_PRIMARY,
+            font=(FONT_FAMILY, 11),
+            padx=10,
+        )
+        gui.lifetime_best_week_label.pack(side=tk.LEFT, padx=10)
+        
+        gui.lifetime_best_month_label = tk.Label(
+            trends_info_frame,
+            text="Best Month: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_PRIMARY,
+            font=(FONT_FAMILY, 11),
+            padx=10,
+        )
+        gui.lifetime_best_month_label.pack(side=tk.LEFT, padx=10)
+        
+        trends_details_frame = ttk.Frame(trends_frame)
+        trends_details_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
+        
+        gui.lifetime_most_active_day_label = tk.Label(
+            trends_details_frame,
+            text="Most Active Day: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_SECONDARY,
+            font=(FONT_FAMILY, 10),
+            padx=10,
+        )
+        gui.lifetime_most_active_day_label.pack(side=tk.LEFT, padx=10)
+        
+        gui.lifetime_most_active_hour_label = tk.Label(
+            trends_details_frame,
+            text="Most Active Hour: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_SECONDARY,
+            font=(FONT_FAMILY, 10),
+            padx=10,
+        )
+        gui.lifetime_most_active_hour_label.pack(side=tk.LEFT, padx=10)
+        
+        # Advanced Metrics section
+        advanced_frame = ttk.LabelFrame(
+            scrollable_frame, text="📊 Advanced Metrics", style="TLabelframe"
+        )
+        advanced_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        
+        advanced_grid = ttk.Frame(advanced_frame)
+        advanced_grid.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+        
+        gui.lifetime_kills_per_session_label = tk.Label(
+            advanced_grid,
+            text="Avg Kills/Session: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_PRIMARY,
+            font=(FONT_FAMILY, 11),
+            padx=20,
+            pady=10,
+        )
+        gui.lifetime_kills_per_session_label.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+        
+        gui.lifetime_survival_rate_label = tk.Label(
+            advanced_grid,
+            text="Survival Rate: --",
+            bg=THEME_BG_PRIMARY,
+            fg=THEME_TEXT_PRIMARY,
+            font=(FONT_FAMILY, 11),
+            padx=20,
+            pady=10,
+        )
+        gui.lifetime_survival_rate_label.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+        
+        advanced_grid.columnconfigure(0, weight=1)
+        advanced_grid.columnconfigure(1, weight=1)
+        
+        # Timeline & Milestones section
+        milestones_frame = ttk.LabelFrame(
+            scrollable_frame, text="📅 Milestones & Achievements", style="TLabelframe"
+        )
+        milestones_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        
+        # Milestones table
+        gui.lifetime_milestones_tree = ttk.Treeview(
+            milestones_frame,
+            columns=("milestone", "date"),
+            show="tree headings",
+            height=8,
+        )
+        gui.lifetime_milestones_tree.heading("#0", text="#")
+        gui.lifetime_milestones_tree.heading("milestone", text="Milestone", command=lambda: _sort_treeview(gui.lifetime_milestones_tree, "milestone", False))
+        gui.lifetime_milestones_tree.heading("date", text="Date Achieved", command=lambda: _sort_treeview(gui.lifetime_milestones_tree, "date", False))
+        gui.lifetime_milestones_tree.column("#0", width=60)
+        gui.lifetime_milestones_tree.column("milestone", width=200)
+        gui.lifetime_milestones_tree.column("date", width=200)
+        gui.lifetime_milestones_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(15, 15))
+        
+        # Recent History section
+        recent_history_frame = ttk.LabelFrame(
+            scrollable_frame, text="📋 Recent History (Last 50 Events)", style="TLabelframe"
+        )
+        recent_history_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+        
+        # Recent history table
+        gui.lifetime_recent_history_tree = ttk.Treeview(
+            recent_history_frame,
+            columns=("timestamp", "killer", "victim", "weapon", "event"),
+            show="tree headings",
+            height=12,
+        )
+        gui.lifetime_recent_history_tree.heading("#0", text="#")
+        gui.lifetime_recent_history_tree.heading("timestamp", text="Date/Time", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "timestamp", False))
+        gui.lifetime_recent_history_tree.heading("killer", text="Killer", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "killer", False))
+        gui.lifetime_recent_history_tree.heading("victim", text="Victim", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "victim", False))
+        gui.lifetime_recent_history_tree.heading("weapon", text="Weapon", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "weapon", False))
+        gui.lifetime_recent_history_tree.heading("event", text="Event", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "event", False))
+        gui.lifetime_recent_history_tree.column("#0", width=50)
+        gui.lifetime_recent_history_tree.column("timestamp", width=150)
+        gui.lifetime_recent_history_tree.column("killer", width=150)
+        gui.lifetime_recent_history_tree.column("victim", width=150)
+        gui.lifetime_recent_history_tree.column("weapon", width=150)
+        gui.lifetime_recent_history_tree.column("event", width=300)
+        gui.lifetime_recent_history_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(15, 15))
+        
+        # Add export button
+        export_btn = ttk.Button(
+            buttons_frame,
+            text=BUTTON_EXPORT_LIFETIME,
+            command=lambda: gui.export_lifetime_report(),
+            style="Success.TButton",
+        )
+        export_btn.pack(side=tk.LEFT, padx=5)
+        
     except Exception:
         logger.debug("create_lifetime_stats_tab failed", exc_info=True)
+
+
+def _sort_treeview(tree, col, reverse, numeric=False):
+    """Sort treeview column when clicked."""
+    try:
+        l = [(tree.set(k, col), k) for k in tree.get_children('')]
+        if numeric:
+            # Try to convert to numbers for proper numeric sorting
+            def try_float(x):
+                try:
+                    # Remove % and other non-numeric chars
+                    val = x[0].replace('%', '').strip()
+                    return float(val)
+                except (ValueError, IndexError):
+                    return 0.0
+            l.sort(key=lambda x: try_float(x), reverse=reverse)
+        else:
+            l.sort(reverse=reverse)
+        
+        # Rearrange items in sorted positions
+        for index, (val, k) in enumerate(l):
+            tree.move(k, '', index)
+        
+        # Reverse sort next time
+        tree.heading(col, command=lambda: _sort_treeview(tree, col, not reverse, numeric))
+    except Exception:
+        logger.debug("Error sorting treeview", exc_info=True)

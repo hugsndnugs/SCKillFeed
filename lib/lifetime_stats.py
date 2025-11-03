@@ -567,9 +567,76 @@ def get_streaks_history(kill_data: List[Dict], player_name: str) -> Dict:
     streaks["current_kill_streak"] = current_kill_streak
     streaks["current_death_streak"] = current_death_streak
     
+    # Calculate average kill streak from streak history
+    kill_streaks = [s["length"] for s in streaks["streak_history"] if s["type"] == "kill"]
+    if kill_streaks:
+        streaks["average_kill_streak"] = sum(kill_streaks) / len(kill_streaks)
+    else:
+        streaks["average_kill_streak"] = 0.0
+    
     # Sort streak history by length (descending) and limit to top 20
     streaks["streak_history"].sort(key=lambda x: x["length"], reverse=True)
     streaks["streak_history"] = streaks["streak_history"][:20]
     
     return streaks
+
+
+def detect_milestones(kill_data: List[Dict], player_name: str) -> List[Dict]:
+    """Detect milestone achievements (kill count milestones).
+    
+    Args:
+        kill_data: List of kill event dictionaries
+        player_name: Player name for filtering
+        
+    Returns:
+        List of milestone dictionaries with keys: milestone, timestamp, kill_count
+    """
+    milestones = []
+    
+    if not kill_data:
+        return milestones
+    
+    # Define milestone thresholds
+    milestone_thresholds = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000]
+    
+    player_name_lower = player_name.lower()
+    
+    # Sort by timestamp to track kill count progression
+    sorted_data = sorted(kill_data, key=lambda x: x.get("timestamp", datetime.min))
+    
+    kill_count = 0
+    milestone_index = 0
+    
+    for event in sorted_data:
+        killer = event.get("killer", "").lower()
+        victim = event.get("victim", "").lower()
+        timestamp = event.get("timestamp")
+        
+        # Skip unknown players
+        if killer == "unknown" or victim == "unknown":
+            continue
+        
+        # Skip suicides
+        if killer == victim:
+            continue
+        
+        # Count player kills
+        if killer == player_name_lower:
+            kill_count += 1
+            
+            # Check if we've reached the next milestone
+            while milestone_index < len(milestone_thresholds):
+                threshold = milestone_thresholds[milestone_index]
+                
+                if kill_count >= threshold:
+                    milestones.append({
+                        "milestone": f"{threshold:,} Kills",
+                        "timestamp": timestamp,
+                        "kill_count": kill_count,
+                    })
+                    milestone_index += 1
+                else:
+                    break
+    
+    return milestones
 
