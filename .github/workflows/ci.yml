@@ -18,7 +18,7 @@ jobs:
     name: Run tests (Linux)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -43,7 +43,7 @@ jobs:
     runs-on: windows-latest
     needs: test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -59,7 +59,7 @@ jobs:
           # Ensure the script is executable and run it
           .\build.ps1 -entry "sc_kill_feed.py" -name "SCKillFeed" -onefile -OutDir "release" -Clean
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: SCKillFeed-windows-exe
           path: |
