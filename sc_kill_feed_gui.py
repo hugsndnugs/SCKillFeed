@@ -218,14 +218,6 @@ class StarCitizenKillFeedGUI:
         self._lifetime_stats_cache = None
         self._lifetime_stats_cache_time = None
         self._lifetime_stats_cache_path = None
-<<<<<<< Updated upstream
-
-        # Lifetime stats caching
-        self._lifetime_stats_cache = None
-        self._lifetime_stats_cache_time = None
-        self._lifetime_stats_cache_path = None
-=======
->>>>>>> Stashed changes
 
         self.MAX_STATISTICS_ENTRIES = DEFAULT_MAX_STATISTICS_ENTRIES
         self.player_name = self.config["user"].get("ingame_name", "")
@@ -397,24 +389,9 @@ class StarCitizenKillFeedGUI:
                     self._timer_job = None
             except Exception:
                 pass
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-            try:
-                if (
-                    hasattr(self, "_overlay_update_job")
-                    and self._overlay_update_job is not None
-                ):
-=======
             
             try:
                 if hasattr(self, "_overlay_update_job") and self._overlay_update_job is not None:
->>>>>>> Stashed changes
-=======
-            
-            try:
-                if hasattr(self, "_overlay_update_job") and self._overlay_update_job is not None:
->>>>>>> Stashed changes
                     try:
                         if hasattr(self.root, "after_cancel"):
                             self.root.after_cancel(self._overlay_update_job)
@@ -423,15 +400,7 @@ class StarCitizenKillFeedGUI:
                     self._overlay_update_job = None
             except Exception:
                 pass
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             try:
                 if hasattr(self, "_update_timer") and self._update_timer is not None:
                     try:
@@ -442,15 +411,7 @@ class StarCitizenKillFeedGUI:
                     self._update_timer = None
             except Exception:
                 pass
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Persist gui_scale to config
             try:
                 self.config["user"]["gui_scale"] = str(self.gui_scale)
@@ -460,7 +421,7 @@ class StarCitizenKillFeedGUI:
                     logger.debug("Failed to save gui_scale on close", exc_info=True)
             except Exception:
                 logger.debug("Failed to save gui_scale on close", exc_info=True)
-
+            
             # Destroy overlay
             try:
                 if self.overlay:
@@ -967,7 +928,7 @@ class StarCitizenKillFeedGUI:
         try:
             if not getattr(self, "_tk_root", None):
                 return
-
+            
             # Check if the root window is visible/mapped
             try:
                 root_state = self._tk_root.state()
@@ -999,7 +960,7 @@ class StarCitizenKillFeedGUI:
         try:
             if not getattr(self, "_tk_root", None):
                 return
-
+            
             # Check current state and toggle accordingly
             try:
                 root_state = self._tk_root.state()
@@ -1311,7 +1272,7 @@ class StarCitizenKillFeedGUI:
                 event = f"{kill['killer']} killed {kill['victim']} ({kill['weapon']})"
 
             self.recent_tree.insert("", "end", values=(time_str, event))
-
+        
         # Update overlay if it exists and is visible
         try:
             if self.overlay and self.overlay.is_visible:
@@ -1391,27 +1352,25 @@ class StarCitizenKillFeedGUI:
         }
         self.update_statistics_display()
         self.status_var.set("Kill feed cleared")
-
+    
     def _init_overlay(self):
         """Initialize the kill tracker overlay."""
         try:
             # Ensure overlay section exists in config
             if "overlay" not in self.config:
                 self.config["overlay"] = {}
-
+            
             # Load overlay config
-            overlay_enabled = (
-                self.config["overlay"].get("enabled", "false").lower() == "true"
-            )
+            overlay_enabled = self.config["overlay"].get("enabled", "false").lower() == "true"
             overlay_theme = self.config["overlay"].get("theme", "dark")
-
+            
             # Get opacity from config
             try:
                 overlay_opacity = float(self.config["overlay"].get("opacity", "0.92"))
                 overlay_opacity = max(0.3, min(1.0, overlay_opacity))
             except (ValueError, TypeError):
                 overlay_opacity = 0.92
-
+            
             # Get position from config or use default
             try:
                 pos_x = int(self.config["overlay"].get("position_x", "0"))
@@ -1431,18 +1390,15 @@ class StarCitizenKillFeedGUI:
                     position = (screen_width - 200, 50)
                 except Exception:
                     position = (50, 50)
-
+            
             # Load enabled stats from config
             try:
                 from lib.overlay_helpers import KillTrackerOverlay
-
                 overlay_stats_config = self.config["overlay"].get("enabled_stats", "")
                 if overlay_stats_config:
-                    enabled_stats_list = [
-                        s.strip() for s in overlay_stats_config.split(",")
-                    ]
+                    enabled_stats_list = [s.strip() for s in overlay_stats_config.split(",")]
                     enabled_stats = {
-                        stat: stat in enabled_stats_list
+                        stat: stat in enabled_stats_list 
                         for stat in KillTrackerOverlay.AVAILABLE_STATS.keys()
                     }
                 else:
@@ -1457,37 +1413,35 @@ class StarCitizenKillFeedGUI:
                     }
             except Exception:
                 enabled_stats = None
-
+            
             # Create overlay
             self.overlay = create_overlay(
-                self,
-                theme=overlay_theme,
+                self, 
+                theme=overlay_theme, 
                 position=position,
-                enabled_stats=enabled_stats,
+                enabled_stats=enabled_stats
             )
-
+            
             # Set opacity from config (applies the configured opacity even if it's the default)
             self.overlay.set_opacity(overlay_opacity)
-
+            
             # Set lock state from config
             try:
-                overlay_locked = (
-                    self.config["overlay"].get("locked", "false").lower() == "true"
-                )
+                overlay_locked = self.config["overlay"].get("locked", "false").lower() == "true"
                 self.overlay.set_locked(overlay_locked)
             except Exception:
                 pass
-
+            
             # Show if enabled
             if overlay_enabled:
                 self.overlay.show()
                 # Start overlay update loop
                 self._start_overlay_updates()
-
+                
         except Exception as e:
             logger.debug(f"Error initializing overlay: {e}", exc_info=True)
             self.overlay = None
-
+    
     def _start_overlay_updates(self):
         """Start periodic overlay updates."""
         try:
@@ -1503,23 +1457,21 @@ class StarCitizenKillFeedGUI:
             self._overlay_update_job = self.safe_after(500, self._start_overlay_updates)
         except Exception:
             logger.debug("Error in overlay update loop", exc_info=True)
-
+    
     def toggle_overlay(self):
         """Toggle overlay visibility."""
         try:
             if not self.overlay:
                 self._init_overlay()
-
+            
             if self.overlay:
                 self.overlay.toggle()
-
+                
                 # Update config
                 self.config.setdefault("overlay", {})
-                self.config["overlay"]["enabled"] = (
-                    "true" if self.overlay.is_visible else "false"
-                )
+                self.config["overlay"]["enabled"] = "true" if self.overlay.is_visible else "false"
                 save_config(self.config, self.config_path)
-
+                
                 # Start/stop update loop
                 if self.overlay.is_visible:
                     self._start_overlay_updates()
@@ -1533,13 +1485,13 @@ class StarCitizenKillFeedGUI:
                         self._overlay_update_job = None
         except Exception as e:
             logger.debug(f"Error toggling overlay: {e}", exc_info=True)
-
+    
     def change_overlay_theme(self, theme_name: str):
         """Change overlay theme."""
         try:
             if not self.overlay:
                 self._init_overlay()
-
+            
             if self.overlay:
                 self.overlay.change_theme(theme_name)
                 self.config.setdefault("overlay", {})
@@ -1547,13 +1499,13 @@ class StarCitizenKillFeedGUI:
                 save_config(self.config, self.config_path)
         except Exception as e:
             logger.debug(f"Error changing overlay theme: {e}", exc_info=True)
-
+    
     def change_overlay_opacity(self, opacity: float):
         """Change overlay opacity."""
         try:
             if not self.overlay:
                 self._init_overlay()
-
+            
             if self.overlay:
                 # Clamp opacity between 0.3 and 1.0
                 opacity = max(0.3, min(1.0, float(opacity)))
@@ -1576,15 +1528,7 @@ class StarCitizenKillFeedGUI:
                     self.refresh_lifetime_stats()
         except Exception:
             logger.debug("Error in tab changed handler", exc_info=True)
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
     
->>>>>>> Stashed changes
-=======
-    
->>>>>>> Stashed changes
     def refresh_lifetime_stats(self, use_cache=True):
         """Refresh lifetime statistics from CSV file."""
         try:
@@ -1592,28 +1536,12 @@ class StarCitizenKillFeedGUI:
                 try:
                     self.lifetime_status_label.config(
                         text="Error: Player name not configured. Please set your in-game name in Settings.",
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                        fg=THEME_ACCENT_DANGER,
-=======
                         fg=THEME_ACCENT_DANGER
->>>>>>> Stashed changes
-=======
-                        fg=THEME_ACCENT_DANGER
->>>>>>> Stashed changes
                     )
                 except Exception:
                     pass
                 return
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Get CSV path
             try:
                 raw = (
@@ -1623,41 +1551,17 @@ class StarCitizenKillFeedGUI:
                 csv_path = resolve_auto_log_path(raw)
             except Exception:
                 csv_path = None
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             if not csv_path:
                 try:
                     self.lifetime_status_label.config(
                         text="Error: CSV log path not configured.",
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                        fg=THEME_ACCENT_DANGER,
-=======
                         fg=THEME_ACCENT_DANGER
->>>>>>> Stashed changes
-=======
-                        fg=THEME_ACCENT_DANGER
->>>>>>> Stashed changes
                     )
                 except Exception:
                     pass
                 return
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Check cache (skip if refresh button was clicked)
             if use_cache and self._lifetime_stats_cache is not None:
                 if self._lifetime_stats_cache_path == csv_path:
@@ -1674,28 +1578,12 @@ class StarCitizenKillFeedGUI:
                                 cached_data["time_trends"],
                                 cached_data["streaks"],
                                 cached_data.get("milestones"),
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                                cached_data.get("recent_history"),
-=======
                                 cached_data.get("recent_history")
->>>>>>> Stashed changes
-=======
-                                cached_data.get("recent_history")
->>>>>>> Stashed changes
                             )
                             try:
                                 self.lifetime_status_label.config(
                                     text=f"Loaded {cached_data['event_count']} events (cached). Last updated: {datetime.now().strftime('%H:%M:%S')}",
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                                    fg=THEME_ACCENT_SUCCESS,
-=======
                                     fg=THEME_ACCENT_SUCCESS
->>>>>>> Stashed changes
-=======
-                                    fg=THEME_ACCENT_SUCCESS
->>>>>>> Stashed changes
                                 )
                             except Exception:
                                 pass
@@ -1703,21 +1591,6 @@ class StarCitizenKillFeedGUI:
                     except Exception:
                         # If cache check fails, proceed with loading
                         pass
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-            # Update status and show progress
-            try:
-                self.lifetime_status_label.config(
-                    text="Loading lifetime statistics...", fg=THEME_TEXT_SECONDARY
-                )
-                # Show/hide progress bar
-                if hasattr(self, "lifetime_progress_bar"):
-                    self.lifetime_progress_bar.pack(pady=5)
-                    self.lifetime_progress_bar.configure(mode="indeterminate")
-=======
-=======
->>>>>>> Stashed changes
             
             # Update status and show progress
             try:
@@ -1729,36 +1602,16 @@ class StarCitizenKillFeedGUI:
                 if hasattr(self, 'lifetime_progress_bar'):
                     self.lifetime_progress_bar.pack(pady=5)
                     self.lifetime_progress_bar.configure(mode='indeterminate')
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                     self.lifetime_progress_bar.start(10)
                 self.root.update_idletasks()  # Force UI update
             except Exception:
                 pass
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Check file size to decide if we need background processing
             try:
                 file_size = os.path.getsize(csv_path)
                 large_file_threshold = 10 * 1024 * 1024  # 10MB
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
                 
->>>>>>> Stashed changes
-=======
-                
->>>>>>> Stashed changes
                 if file_size > large_file_threshold:
                     # Use background thread for large files
                     self._load_lifetime_stats_background(csv_path)
@@ -1770,76 +1623,26 @@ class StarCitizenKillFeedGUI:
                 # Fallback to direct loading
                 kill_data = load_lifetime_data(csv_path, self.player_name)
                 self._process_lifetime_stats(kill_data, csv_path)
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
         except Exception as e:
             logger.error(f"Error refreshing lifetime stats: {e}", exc_info=True)
             try:
                 self.lifetime_status_label.config(
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    text=f"Error loading statistics: {str(e)}", fg=THEME_ACCENT_DANGER
-                )
-                if hasattr(self, "lifetime_progress_bar"):
-=======
-=======
->>>>>>> Stashed changes
                     text=f"Error loading statistics: {str(e)}",
                     fg=THEME_ACCENT_DANGER
                 )
                 if hasattr(self, 'lifetime_progress_bar'):
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                     self.lifetime_progress_bar.stop()
                     self.lifetime_progress_bar.pack_forget()
             except Exception:
                 pass
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-    def _load_lifetime_stats_background(self, csv_path):
-        """Load lifetime stats in background thread for large files."""
-
-=======
     
     def _load_lifetime_stats_background(self, csv_path):
         """Load lifetime stats in background thread for large files."""
->>>>>>> Stashed changes
-=======
-    
-    def _load_lifetime_stats_background(self, csv_path):
-        """Load lifetime stats in background thread for large files."""
->>>>>>> Stashed changes
         def load_in_thread():
             try:
                 kill_data = load_lifetime_data(csv_path, self.player_name)
                 # Schedule UI update on main thread
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                self.safe_after(
-                    0, lambda: self._process_lifetime_stats(kill_data, csv_path)
-                )
-            except Exception as e:
-                logger.error(
-                    f"Error loading lifetime stats in background: {e}", exc_info=True
-                )
-                self.safe_after(0, lambda: self._handle_lifetime_stats_error(str(e)))
-
-        thread = threading.Thread(target=load_in_thread, daemon=True)
-        thread.start()
-
-=======
-=======
->>>>>>> Stashed changes
                 self.safe_after(0, lambda: self._process_lifetime_stats(kill_data, csv_path))
             except Exception as e:
                 logger.error(f"Error loading lifetime stats in background: {e}", exc_info=True)
@@ -1848,62 +1651,23 @@ class StarCitizenKillFeedGUI:
         thread = threading.Thread(target=load_in_thread, daemon=True)
         thread.start()
     
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     def _process_lifetime_stats(self, kill_data, csv_path):
         """Process loaded kill data and update display."""
         try:
             # Hide progress bar
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            if hasattr(self, "lifetime_progress_bar"):
-                self.lifetime_progress_bar.stop()
-                self.lifetime_progress_bar.pack_forget()
-
-=======
-=======
->>>>>>> Stashed changes
             if hasattr(self, 'lifetime_progress_bar'):
                 self.lifetime_progress_bar.stop()
                 self.lifetime_progress_bar.pack_forget()
             
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             if not kill_data:
                 try:
                     self.lifetime_status_label.config(
                         text=f"No kill data found in CSV: {csv_path}",
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                        fg=THEME_ACCENT_WARNING,
-=======
                         fg=THEME_ACCENT_WARNING
->>>>>>> Stashed changes
-=======
-                        fg=THEME_ACCENT_WARNING
->>>>>>> Stashed changes
                     )
                 except Exception:
                     pass
                 # Clear all displays
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                self._update_lifetime_statistics_display(
-                    None, None, None, None, None, None, None
-                )
-                return
-
-            # Update status
-            try:
-                self.lifetime_status_label.config(
-                    text="Calculating statistics...", fg=THEME_TEXT_SECONDARY
-=======
-=======
->>>>>>> Stashed changes
                 self._update_lifetime_statistics_display(None, None, None, None, None, None, None)
                 return
             
@@ -1912,23 +1676,11 @@ class StarCitizenKillFeedGUI:
                 self.lifetime_status_label.config(
                     text="Calculating statistics...",
                     fg=THEME_TEXT_SECONDARY
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                 )
                 self.root.update_idletasks()
             except Exception:
                 pass
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Calculate statistics
             lifetime_stats = calculate_lifetime_stats(kill_data, self.player_name)
             weapon_stats = get_weapon_stats(kill_data, self.player_name)
@@ -1936,28 +1688,6 @@ class StarCitizenKillFeedGUI:
             time_trends = get_time_trends(kill_data, self.player_name)
             streaks = get_streaks_history(kill_data, self.player_name)
             milestones = detect_milestones(kill_data, self.player_name)
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-            # Get recent history (last 50 events, sorted by timestamp desc)
-            recent_history = sorted(
-                kill_data, key=lambda x: x.get("timestamp", datetime.min), reverse=True
-            )[:50]
-
-            # Update display
-            self._update_lifetime_statistics_display(
-                lifetime_stats,
-                weapon_stats,
-                pvp_stats,
-                time_trends,
-                streaks,
-                milestones,
-                recent_history,
-            )
-
-=======
-=======
->>>>>>> Stashed changes
             
             # Get recent history (last 50 events, sorted by timestamp desc)
             recent_history = sorted(kill_data, key=lambda x: x.get("timestamp", datetime.min), reverse=True)[:50]
@@ -1967,10 +1697,6 @@ class StarCitizenKillFeedGUI:
                 lifetime_stats, weapon_stats, pvp_stats, time_trends, streaks, milestones, recent_history
             )
             
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             # Cache the results
             try:
                 self._lifetime_stats_cache = {
@@ -1987,33 +1713,11 @@ class StarCitizenKillFeedGUI:
                 self._lifetime_stats_cache_time = os.path.getmtime(csv_path)
             except Exception:
                 pass
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Update status
             try:
                 self.lifetime_status_label.config(
                     text=f"Loaded {len(kill_data)} events from CSV. Last updated: {datetime.now().strftime('%H:%M:%S')}",
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    fg=THEME_ACCENT_SUCCESS,
-                )
-            except Exception:
-                pass
-
-        except Exception as e:
-            logger.error(f"Error processing lifetime stats: {e}", exc_info=True)
-            self._handle_lifetime_stats_error(str(e))
-
-=======
-=======
->>>>>>> Stashed changes
                     fg=THEME_ACCENT_SUCCESS
                 )
             except Exception:
@@ -2023,56 +1727,21 @@ class StarCitizenKillFeedGUI:
             logger.error(f"Error processing lifetime stats: {e}", exc_info=True)
             self._handle_lifetime_stats_error(str(e))
     
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     def _handle_lifetime_stats_error(self, error_msg):
         """Handle errors during lifetime stats loading."""
         try:
             self.lifetime_status_label.config(
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                text=f"Error loading statistics: {error_msg}", fg=THEME_ACCENT_DANGER
-            )
-            if hasattr(self, "lifetime_progress_bar"):
-=======
-=======
->>>>>>> Stashed changes
                 text=f"Error loading statistics: {error_msg}",
                 fg=THEME_ACCENT_DANGER
             )
             if hasattr(self, 'lifetime_progress_bar'):
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                 self.lifetime_progress_bar.stop()
                 self.lifetime_progress_bar.pack_forget()
         except Exception:
             pass
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-    def _update_lifetime_statistics_display(
-        self,
-        lifetime_stats,
-        weapon_stats,
-        pvp_stats,
-        time_trends,
-        streaks,
-        milestones=None,
-        recent_history=None,
-=======
     
     def _update_lifetime_statistics_display(
         self, lifetime_stats, weapon_stats, pvp_stats, time_trends, streaks, milestones=None, recent_history=None
->>>>>>> Stashed changes
-=======
-    
-    def _update_lifetime_statistics_display(
-        self, lifetime_stats, weapon_stats, pvp_stats, time_trends, streaks, milestones=None, recent_history=None
->>>>>>> Stashed changes
     ):
         """Update the lifetime statistics display with calculated data."""
         try:
@@ -2084,21 +1753,9 @@ class StarCitizenKillFeedGUI:
                 self.lifetime_sessions_label.config(text="Total Sessions: --")
                 self.lifetime_first_kill_label.config(text="First Kill: --")
                 self.lifetime_last_kill_label.config(text="Last Kill: --")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                if hasattr(self, "lifetime_play_time_label"):
-                    self.lifetime_play_time_label.config(text="Total Play Time: --")
-                if hasattr(self, "lifetime_suicide_count_label"):
-=======
                 if hasattr(self, 'lifetime_play_time_label'):
                     self.lifetime_play_time_label.config(text="Total Play Time: --")
                 if hasattr(self, 'lifetime_suicide_count_label'):
->>>>>>> Stashed changes
-=======
-                if hasattr(self, 'lifetime_play_time_label'):
-                    self.lifetime_play_time_label.config(text="Total Play Time: --")
-                if hasattr(self, 'lifetime_suicide_count_label'):
->>>>>>> Stashed changes
                     self.lifetime_suicide_count_label.config(text="Suicides: --")
                 self.lifetime_most_used_label.config(text="Most Used: --")
                 self.lifetime_most_effective_label.config(text="Most Effective: --")
@@ -2106,54 +1763,6 @@ class StarCitizenKillFeedGUI:
                 self.lifetime_nemesis_label.config(text="Nemesis: --")
                 self.lifetime_max_kill_streak_label.config(text="Max Kill Streak: --")
                 self.lifetime_max_death_streak_label.config(text="Max Death Streak: --")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                if hasattr(self, "lifetime_avg_kill_streak_label"):
-                    self.lifetime_avg_kill_streak_label.config(
-                        text="Avg Kill Streak: --"
-                    )
-                if hasattr(self, "lifetime_best_day_label"):
-                    self.lifetime_best_day_label.config(text="Best Day: --")
-                if hasattr(self, "lifetime_best_week_label"):
-                    self.lifetime_best_week_label.config(text="Best Week: --")
-                if hasattr(self, "lifetime_best_month_label"):
-                    self.lifetime_best_month_label.config(text="Best Month: --")
-                if hasattr(self, "lifetime_most_active_day_label"):
-                    self.lifetime_most_active_day_label.config(
-                        text="Most Active Day: --"
-                    )
-                if hasattr(self, "lifetime_most_active_hour_label"):
-                    self.lifetime_most_active_hour_label.config(
-                        text="Most Active Hour: --"
-                    )
-                if hasattr(self, "lifetime_kills_per_session_label"):
-                    self.lifetime_kills_per_session_label.config(
-                        text="Avg Kills/Session: --"
-                    )
-                if hasattr(self, "lifetime_survival_rate_label"):
-                    self.lifetime_survival_rate_label.config(text="Survival Rate: --")
-
-                # Clear trees
-                if hasattr(self, "lifetime_weapons_tree"):
-                    for item in self.lifetime_weapons_tree.get_children():
-                        self.lifetime_weapons_tree.delete(item)
-                if hasattr(self, "lifetime_rivals_tree"):
-                    for item in self.lifetime_rivals_tree.get_children():
-                        self.lifetime_rivals_tree.delete(item)
-                if hasattr(self, "lifetime_streaks_tree"):
-                    for item in self.lifetime_streaks_tree.get_children():
-                        self.lifetime_streaks_tree.delete(item)
-                if hasattr(self, "lifetime_milestones_tree"):
-                    for item in self.lifetime_milestones_tree.get_children():
-                        self.lifetime_milestones_tree.delete(item)
-                if hasattr(self, "lifetime_recent_history_tree"):
-                    for item in self.lifetime_recent_history_tree.get_children():
-                        self.lifetime_recent_history_tree.delete(item)
-                return
-
-=======
-=======
->>>>>>> Stashed changes
                 if hasattr(self, 'lifetime_avg_kill_streak_label'):
                     self.lifetime_avg_kill_streak_label.config(text="Avg Kill Streak: --")
                 if hasattr(self, 'lifetime_best_day_label'):
@@ -2189,10 +1798,6 @@ class StarCitizenKillFeedGUI:
                         self.lifetime_recent_history_tree.delete(item)
                 return
             
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             # Update core metrics
             self.lifetime_kills_label.config(
                 text=f"Lifetime Kills: {lifetime_stats['total_kills']:,}"
@@ -2206,21 +1811,6 @@ class StarCitizenKillFeedGUI:
             self.lifetime_sessions_label.config(
                 text=f"Total Sessions: {lifetime_stats['total_sessions']}"
             )
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-            # Update dates
-            if lifetime_stats.get("first_kill_date"):
-                first_date = lifetime_stats["first_kill_date"].strftime(
-                    "%Y-%m-%d %H:%M"
-                )
-                self.lifetime_first_kill_label.config(text=f"First Kill: {first_date}")
-            else:
-                self.lifetime_first_kill_label.config(text="First Kill: --")
-
-=======
-=======
->>>>>>> Stashed changes
             
             # Update dates
             if lifetime_stats.get("first_kill_date"):
@@ -2229,24 +1819,12 @@ class StarCitizenKillFeedGUI:
             else:
                 self.lifetime_first_kill_label.config(text="First Kill: --")
             
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             if lifetime_stats.get("last_kill_date"):
                 last_date = lifetime_stats["last_kill_date"].strftime("%Y-%m-%d %H:%M")
                 self.lifetime_last_kill_label.config(text=f"Last Kill: {last_date}")
             else:
                 self.lifetime_last_kill_label.config(text="Last Kill: --")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Update play time
             if lifetime_stats.get("total_play_time_hours"):
                 hours = lifetime_stats["total_play_time_hours"]
@@ -2262,29 +1840,13 @@ class StarCitizenKillFeedGUI:
                     )
             else:
                 self.lifetime_play_time_label.config(text="Total Play Time: --")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Update suicide count
             suicide_count = lifetime_stats.get("suicide_count", 0)
             self.lifetime_suicide_count_label.config(
                 text=f"Suicides: {suicide_count:,}"
             )
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Update weapon stats
             if weapon_stats and weapon_stats.get("most_used"):
                 weapon, count = weapon_stats["most_used"]
@@ -2293,15 +1855,7 @@ class StarCitizenKillFeedGUI:
                 )
             else:
                 self.lifetime_most_used_label.config(text="Most Used: --")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             if weapon_stats and weapon_stats.get("most_effective"):
                 weapon, kd = weapon_stats["most_effective"]
                 if weapon:
@@ -2312,23 +1866,9 @@ class StarCitizenKillFeedGUI:
                     self.lifetime_most_effective_label.config(text="Most Effective: --")
             else:
                 self.lifetime_most_effective_label.config(text="Most Effective: --")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-            # Update weapon mastery table
-            self.lifetime_weapons_tree.delete(
-                *self.lifetime_weapons_tree.get_children()
-            )
-=======
             
             # Update weapon mastery table
             self.lifetime_weapons_tree.delete(*self.lifetime_weapons_tree.get_children())
->>>>>>> Stashed changes
-=======
-            
-            # Update weapon mastery table
-            self.lifetime_weapons_tree.delete(*self.lifetime_weapons_tree.get_children())
->>>>>>> Stashed changes
             if weapon_stats and weapon_stats.get("mastery_table"):
                 for weapon_data in weapon_stats["mastery_table"]:
                     first_use = weapon_data.get("first_use")
@@ -2348,15 +1888,7 @@ class StarCitizenKillFeedGUI:
                             last_str,
                         ),
                     )
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Update PvP stats
             if pvp_stats and pvp_stats.get("most_killed"):
                 player, count = pvp_stats["most_killed"]
@@ -2368,15 +1900,7 @@ class StarCitizenKillFeedGUI:
                     self.lifetime_most_killed_label.config(text="Most Killed: --")
             else:
                 self.lifetime_most_killed_label.config(text="Most Killed: --")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             if pvp_stats and pvp_stats.get("nemesis"):
                 player, count = pvp_stats["nemesis"]
                 if player:
@@ -2387,31 +1911,13 @@ class StarCitizenKillFeedGUI:
                     self.lifetime_nemesis_label.config(text="Nemesis: --")
             else:
                 self.lifetime_nemesis_label.config(text="Nemesis: --")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Update rivals table
             self.lifetime_rivals_tree.delete(*self.lifetime_rivals_tree.get_children())
             if pvp_stats and pvp_stats.get("rivals_table"):
                 for rival_data in pvp_stats["rivals_table"][:20]:  # Top 20
                     last_encounter = rival_data.get("last_encounter")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    last_str = (
-                        last_encounter.strftime("%Y-%m-%d") if last_encounter else "--"
-                    )
-=======
                     last_str = last_encounter.strftime("%Y-%m-%d") if last_encounter else "--"
->>>>>>> Stashed changes
-=======
-                    last_str = last_encounter.strftime("%Y-%m-%d") if last_encounter else "--"
->>>>>>> Stashed changes
                     self.lifetime_rivals_tree.insert(
                         "",
                         "end",
@@ -2423,15 +1929,7 @@ class StarCitizenKillFeedGUI:
                             last_str,
                         ),
                     )
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Update streaks
             if streaks:
                 self.lifetime_max_kill_streak_label.config(
@@ -2440,24 +1938,6 @@ class StarCitizenKillFeedGUI:
                 self.lifetime_max_death_streak_label.config(
                     text=f"Max Death Streak: {streaks.get('max_death_streak', 0)}"
                 )
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-                # Update average kill streak if label exists
-                if hasattr(self, "lifetime_avg_kill_streak_label"):
-                    avg_streak = streaks.get("average_kill_streak", 0.0)
-                    self.lifetime_avg_kill_streak_label.config(
-                        text=f"Avg Kill Streak: {avg_streak:.1f}"
-                    )
-
-                # Update streak history table
-                if hasattr(self, "lifetime_streaks_tree"):
-                    self.lifetime_streaks_tree.delete(
-                        *self.lifetime_streaks_tree.get_children()
-                    )
-=======
-=======
->>>>>>> Stashed changes
                 
                 # Update average kill streak if label exists
                 if hasattr(self, 'lifetime_avg_kill_streak_label'):
@@ -2469,32 +1949,12 @@ class StarCitizenKillFeedGUI:
                 # Update streak history table
                 if hasattr(self, 'lifetime_streaks_tree'):
                     self.lifetime_streaks_tree.delete(*self.lifetime_streaks_tree.get_children())
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                     streak_history = streaks.get("streak_history", [])
                     for rank, streak in enumerate(streak_history[:20], 1):
                         start_date = streak.get("start")
                         end_date = streak.get("end")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                        start_str = (
-                            start_date.strftime("%Y-%m-%d %H:%M")
-                            if start_date
-                            else "--"
-                        )
-                        end_str = (
-                            end_date.strftime("%Y-%m-%d %H:%M") if end_date else "--"
-                        )
-=======
                         start_str = start_date.strftime("%Y-%m-%d %H:%M") if start_date else "--"
                         end_str = end_date.strftime("%Y-%m-%d %H:%M") if end_date else "--"
->>>>>>> Stashed changes
-=======
-                        start_str = start_date.strftime("%Y-%m-%d %H:%M") if start_date else "--"
-                        end_str = end_date.strftime("%Y-%m-%d %H:%M") if end_date else "--"
->>>>>>> Stashed changes
                         streak_type = streak.get("type", "").capitalize()
                         self.lifetime_streaks_tree.insert(
                             "",
@@ -2510,43 +1970,17 @@ class StarCitizenKillFeedGUI:
             else:
                 self.lifetime_max_kill_streak_label.config(text="Max Kill Streak: --")
                 self.lifetime_max_death_streak_label.config(text="Max Death Streak: --")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-            # Update average kill streak (even if no streaks)
-            if hasattr(self, "lifetime_avg_kill_streak_label"):
-                if streaks:
-                    avg_streak = streaks.get("average_kill_streak", 0.0)
-=======
-=======
->>>>>>> Stashed changes
             
             # Update average kill streak (even if no streaks)
             if hasattr(self, 'lifetime_avg_kill_streak_label'):
                 if streaks:
                     avg_streak = streaks.get('average_kill_streak', 0.0)
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                     self.lifetime_avg_kill_streak_label.config(
                         text=f"Avg Kill Streak: {avg_streak:.1f}"
                     )
                 else:
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    self.lifetime_avg_kill_streak_label.config(
-                        text="Avg Kill Streak: --"
-                    )
-
-=======
                     self.lifetime_avg_kill_streak_label.config(text="Avg Kill Streak: --")
             
->>>>>>> Stashed changes
-=======
-                    self.lifetime_avg_kill_streak_label.config(text="Avg Kill Streak: --")
-            
->>>>>>> Stashed changes
             # Update performance trends
             if time_trends:
                 best_day = time_trends.get("best_day")
@@ -2556,15 +1990,7 @@ class StarCitizenKillFeedGUI:
                     )
                 else:
                     self.lifetime_best_day_label.config(text="Best Day: --")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
                 
->>>>>>> Stashed changes
-=======
-                
->>>>>>> Stashed changes
                 best_week = time_trends.get("best_week")
                 if best_week:
                     self.lifetime_best_week_label.config(
@@ -2572,15 +1998,7 @@ class StarCitizenKillFeedGUI:
                     )
                 else:
                     self.lifetime_best_week_label.config(text="Best Week: --")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
                 
->>>>>>> Stashed changes
-=======
-                
->>>>>>> Stashed changes
                 best_month = time_trends.get("best_month")
                 if best_month:
                     self.lifetime_best_month_label.config(
@@ -2588,54 +2006,18 @@ class StarCitizenKillFeedGUI:
                     )
                 else:
                     self.lifetime_best_month_label.config(text="Best Month: --")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
                 
->>>>>>> Stashed changes
-=======
-                
->>>>>>> Stashed changes
                 # Most active day of week
                 kills_by_day = time_trends.get("kills_by_day_of_week", Counter())
                 if kills_by_day:
                     most_active_day_num = kills_by_day.most_common(1)[0][0]
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    day_names = [
-                        "Monday",
-                        "Tuesday",
-                        "Wednesday",
-                        "Thursday",
-                        "Friday",
-                        "Saturday",
-                        "Sunday",
-                    ]
-=======
                     day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
->>>>>>> Stashed changes
-=======
-                    day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
->>>>>>> Stashed changes
                     self.lifetime_most_active_day_label.config(
                         text=f"Most Active Day: {day_names[most_active_day_num]}"
                     )
                 else:
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    self.lifetime_most_active_day_label.config(
-                        text="Most Active Day: --"
-                    )
-
-=======
                     self.lifetime_most_active_day_label.config(text="Most Active Day: --")
                 
->>>>>>> Stashed changes
-=======
-                    self.lifetime_most_active_day_label.config(text="Most Active Day: --")
-                
->>>>>>> Stashed changes
                 # Most active hour
                 kills_by_hour = time_trends.get("kills_by_hour", Counter())
                 if kills_by_hour:
@@ -2644,34 +2026,14 @@ class StarCitizenKillFeedGUI:
                         text=f"Most Active Hour: {most_active_hour:02d}:00"
                     )
                 else:
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    self.lifetime_most_active_hour_label.config(
-                        text="Most Active Hour: --"
-                    )
-
-=======
                     self.lifetime_most_active_hour_label.config(text="Most Active Hour: --")
             
->>>>>>> Stashed changes
-=======
-                    self.lifetime_most_active_hour_label.config(text="Most Active Hour: --")
-            
->>>>>>> Stashed changes
             # Update advanced metrics
             if lifetime_stats:
                 total_kills = lifetime_stats.get("total_kills", 0)
                 total_deaths = lifetime_stats.get("total_deaths", 0)
                 total_sessions = lifetime_stats.get("total_sessions", 0)
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
                 
->>>>>>> Stashed changes
-=======
-                
->>>>>>> Stashed changes
                 # Kills per session
                 if total_sessions > 0:
                     avg_kills = total_kills / total_sessions
@@ -2679,20 +2041,8 @@ class StarCitizenKillFeedGUI:
                         text=f"Avg Kills/Session: {avg_kills:.1f}"
                     )
                 else:
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    self.lifetime_kills_per_session_label.config(
-                        text="Avg Kills/Session: --"
-                    )
-
-=======
                     self.lifetime_kills_per_session_label.config(text="Avg Kills/Session: --")
                 
->>>>>>> Stashed changes
-=======
-                    self.lifetime_kills_per_session_label.config(text="Avg Kills/Session: --")
-                
->>>>>>> Stashed changes
                 # Survival rate
                 total_encounters = total_kills + total_deaths
                 if total_encounters > 0:
@@ -2702,27 +2052,6 @@ class StarCitizenKillFeedGUI:
                     )
                 else:
                     self.lifetime_survival_rate_label.config(text="Survival Rate: --")
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-            # Update milestones table
-            if milestones and hasattr(self, "lifetime_milestones_tree"):
-                self.lifetime_milestones_tree.delete(
-                    *self.lifetime_milestones_tree.get_children()
-                )
-                for idx, milestone in enumerate(milestones, 1):
-                    milestone_date = milestone.get("timestamp")
-                    date_str = (
-                        milestone_date.strftime("%Y-%m-%d %H:%M")
-                        if milestone_date
-                        else "--"
-                    )
-                    description = milestone.get(
-                        "description", f"{milestone.get('value', 0):,} Kills"
-                    )
-=======
-=======
->>>>>>> Stashed changes
             
             # Update milestones table
             if milestones and hasattr(self, 'lifetime_milestones_tree'):
@@ -2731,10 +2060,6 @@ class StarCitizenKillFeedGUI:
                     milestone_date = milestone.get("timestamp")
                     date_str = milestone_date.strftime("%Y-%m-%d %H:%M") if milestone_date else "--"
                     description = milestone.get("description", f"{milestone.get('value', 0):,} Kills")
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                     self.lifetime_milestones_tree.insert(
                         "",
                         "end",
@@ -2744,36 +2069,6 @@ class StarCitizenKillFeedGUI:
                             date_str,
                         ),
                     )
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            elif hasattr(self, "lifetime_milestones_tree"):
-                # Clear milestones table if no milestones
-                for item in self.lifetime_milestones_tree.get_children():
-                    self.lifetime_milestones_tree.delete(item)
-
-            # Update recent history table
-            if recent_history and hasattr(self, "lifetime_recent_history_tree"):
-                self.lifetime_recent_history_tree.delete(
-                    *self.lifetime_recent_history_tree.get_children()
-                )
-                # Sort by timestamp descending (most recent first)
-                sorted_history = sorted(
-                    recent_history,
-                    key=lambda x: x.get("timestamp", datetime.min),
-                    reverse=True,
-                )
-                for idx, event in enumerate(sorted_history[:50], 1):
-                    timestamp = event.get("timestamp")
-                    timestamp_str = (
-                        timestamp.strftime("%Y-%m-%d %H:%M:%S") if timestamp else "--"
-                    )
-                    killer = event.get("killer", "")
-                    victim = event.get("victim", "")
-                    weapon = event.get("weapon", "")
-
-=======
-=======
->>>>>>> Stashed changes
             elif hasattr(self, 'lifetime_milestones_tree'):
                 # Clear milestones table if no milestones
                 for item in self.lifetime_milestones_tree.get_children():
@@ -2791,10 +2086,6 @@ class StarCitizenKillFeedGUI:
                     victim = event.get("victim", "")
                     weapon = event.get("weapon", "")
                     
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                     # Format event description
                     if killer == victim:
                         if killer == self.player_name:
@@ -2807,15 +2098,7 @@ class StarCitizenKillFeedGUI:
                         event_desc = f"{killer} killed you using {weapon}"
                     else:
                         event_desc = f"{killer} killed {victim} using {weapon}"
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
                     
->>>>>>> Stashed changes
-=======
-                    
->>>>>>> Stashed changes
                     self.lifetime_recent_history_tree.insert(
                         "",
                         "end",
@@ -2828,20 +2111,6 @@ class StarCitizenKillFeedGUI:
                             event_desc,
                         ),
                     )
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-            elif hasattr(self, "lifetime_recent_history_tree"):
-                # Clear recent history table if no data
-                for item in self.lifetime_recent_history_tree.get_children():
-                    self.lifetime_recent_history_tree.delete(item)
-
-        except Exception as e:
-            logger.error(
-                f"Error updating lifetime statistics display: {e}", exc_info=True
-            )
-=======
-=======
->>>>>>> Stashed changes
             elif hasattr(self, 'lifetime_recent_history_tree'):
                 # Clear recent history table if no data
                 for item in self.lifetime_recent_history_tree.get_children():
@@ -2849,10 +2118,6 @@ class StarCitizenKillFeedGUI:
                 
         except Exception as e:
             logger.error(f"Error updating lifetime statistics display: {e}", exc_info=True)
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
     def export_lifetime_report(self):
         """Export lifetime statistics to JSON file."""
@@ -2861,23 +2126,10 @@ class StarCitizenKillFeedGUI:
             if self._lifetime_stats_cache is None:
                 messagebox.showwarning(
                     MSG_WARNING_TITLE,
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    "No lifetime statistics loaded. Please refresh stats first.",
-                )
-                return
-
-=======
-=======
->>>>>>> Stashed changes
                     "No lifetime statistics loaded. Please refresh stats first."
                 )
                 return
             
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             # Choose save location
             file_path = filedialog.asksaveasfilename(
                 title="Export Lifetime Statistics Report",
@@ -2887,23 +2139,10 @@ class StarCitizenKillFeedGUI:
                     ("All files", "*.*"),
                 ],
             )
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-            if not file_path:
-                return
-
-=======
-=======
->>>>>>> Stashed changes
             
             if not file_path:
                 return
             
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
             # Prepare export data
             cached_data = self._lifetime_stats_cache
             export_data = {
@@ -2913,35 +2152,11 @@ class StarCitizenKillFeedGUI:
                 "event_count": cached_data["event_count"],
                 "lifetime_statistics": {
                     "total_kills": cached_data["lifetime_stats"].get("total_kills", 0),
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    "total_deaths": cached_data["lifetime_stats"].get(
-                        "total_deaths", 0
-                    ),
-                    "lifetime_kd_ratio": cached_data["lifetime_stats"].get(
-                        "lifetime_kd_ratio", 0.0
-                    ),
-                    "total_sessions": cached_data["lifetime_stats"].get(
-                        "total_sessions", 0
-                    ),
-                    "total_play_time_hours": cached_data["lifetime_stats"].get(
-                        "total_play_time_hours", 0.0
-                    ),
-                    "suicide_count": cached_data["lifetime_stats"].get(
-                        "suicide_count", 0
-                    ),
-=======
-=======
->>>>>>> Stashed changes
                     "total_deaths": cached_data["lifetime_stats"].get("total_deaths", 0),
                     "lifetime_kd_ratio": cached_data["lifetime_stats"].get("lifetime_kd_ratio", 0.0),
                     "total_sessions": cached_data["lifetime_stats"].get("total_sessions", 0),
                     "total_play_time_hours": cached_data["lifetime_stats"].get("total_play_time_hours", 0.0),
                     "suicide_count": cached_data["lifetime_stats"].get("suicide_count", 0),
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                     "first_kill_date": (
                         cached_data["lifetime_stats"].get("first_kill_date").isoformat()
                         if cached_data["lifetime_stats"].get("first_kill_date")
@@ -2959,49 +2174,17 @@ class StarCitizenKillFeedGUI:
                     "best_day": cached_data["time_trends"].get("best_day"),
                     "best_week": cached_data["time_trends"].get("best_week"),
                     "best_month": cached_data["time_trends"].get("best_month"),
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-                    "kills_by_hour": dict(
-                        cached_data["time_trends"].get("kills_by_hour", Counter())
-                    ),
-                    "kills_by_day_of_week": dict(
-                        cached_data["time_trends"].get(
-                            "kills_by_day_of_week", Counter()
-                        )
-                    ),
-                    "kills_by_day": cached_data["time_trends"].get("kills_by_day", {}),
-                    "kills_by_week": cached_data["time_trends"].get(
-                        "kills_by_week", {}
-                    ),
-                    "kills_by_month": cached_data["time_trends"].get(
-                        "kills_by_month", {}
-                    ),
-=======
-=======
->>>>>>> Stashed changes
                     "kills_by_hour": dict(cached_data["time_trends"].get("kills_by_hour", Counter())),
                     "kills_by_day_of_week": dict(cached_data["time_trends"].get("kills_by_day_of_week", Counter())),
                     "kills_by_day": cached_data["time_trends"].get("kills_by_day", {}),
                     "kills_by_week": cached_data["time_trends"].get("kills_by_week", {}),
                     "kills_by_month": cached_data["time_trends"].get("kills_by_month", {}),
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
                 },
                 "streak_statistics": cached_data["streaks"],
                 "milestones": cached_data.get("milestones", []),
                 "recent_history": cached_data.get("recent_history", []),
             }
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Convert datetime objects in streaks
             if "streak_history" in export_data["streak_statistics"]:
                 for streak in export_data["streak_statistics"]["streak_history"]:
@@ -3009,83 +2192,28 @@ class StarCitizenKillFeedGUI:
                         streak["start"] = streak["start"].isoformat()
                     if streak.get("end"):
                         streak["end"] = streak["end"].isoformat()
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Convert datetime objects in weapon mastery table
             for weapon in export_data["weapon_statistics"].get("mastery_table", []):
                 if weapon.get("first_use"):
                     weapon["first_use"] = weapon["first_use"].isoformat()
                 if weapon.get("last_use"):
                     weapon["last_use"] = weapon["last_use"].isoformat()
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Convert datetime objects in rivals table
             for rival in export_data["pvp_statistics"].get("rivals_table", []):
                 if rival.get("last_encounter"):
                     rival["last_encounter"] = rival["last_encounter"].isoformat()
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Convert datetime objects in milestones
             for milestone in export_data.get("milestones", []):
                 if milestone.get("timestamp"):
                     milestone["timestamp"] = milestone["timestamp"].isoformat()
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-=======
             
->>>>>>> Stashed changes
-=======
-            
->>>>>>> Stashed changes
             # Convert datetime objects in recent history
             for event in export_data.get("recent_history", []):
                 if event.get("timestamp"):
                     event["timestamp"] = event["timestamp"].isoformat()
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-
-            # Write JSON file
-            import json
-
-            with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(export_data, f, indent=2)
-
-            messagebox.showinfo(
-                MSG_SUCCESS_TITLE,
-                f"Lifetime statistics exported successfully to:\n{file_path}",
-            )
-
-        except Exception as e:
-            logger.error(f"Error exporting lifetime report: {e}", exc_info=True)
-            messagebox.showerror(
-                MSG_ERROR_TITLE, f"Failed to export lifetime report: {str(e)}"
-            )
-
-=======
-=======
->>>>>>> Stashed changes
             
             # Write JSON file
             import json
@@ -3104,10 +2232,6 @@ class StarCitizenKillFeedGUI:
                 f"Failed to export lifetime report: {str(e)}"
             )
     
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
     def export_data(self):
         """Export kill data to file"""
         if not self.kills_data:

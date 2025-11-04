@@ -185,7 +185,7 @@ def set_foreground_hwnd(hwnd):
 
 def setup_taskbar_click_handler(tk_root, callback):
     """Setup a handler for taskbar icon clicks on Windows.
-
+    
     This function sets up a Windows message handler to catch WM_COMMAND
     messages that are sent when the taskbar icon is clicked, providing
     more reliable taskbar interaction.
@@ -195,22 +195,16 @@ def setup_taskbar_click_handler(tk_root, callback):
             return False
         import ctypes
         from ctypes import wintypes
-
+        
         user32 = ctypes.windll.user32
         kernel32 = ctypes.windll.kernel32
-
+        
         # Get the window handle
         hwnd = tk_root.winfo_id()
-
+        
         # Define the window procedure
-        WNDPROC = ctypes.WINFUNCTYPE(
-            ctypes.c_long,
-            wintypes.HWND,
-            wintypes.UINT,
-            wintypes.WPARAM,
-            wintypes.LPARAM,
-        )
-
+        WNDPROC = ctypes.WINFUNCTYPE(ctypes.c_long, wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM)
+        
         def window_proc(hwnd, msg, wparam, lparam):
             # Handle WM_COMMAND messages (taskbar clicks)
             if msg == 0x0111:  # WM_COMMAND
@@ -218,15 +212,13 @@ def setup_taskbar_click_handler(tk_root, callback):
                     callback()
                 except Exception:
                     pass
-
+            
             # Call the default window procedure
             return user32.DefWindowProcW(hwnd, msg, wparam, lparam)
-
+        
         # Set the new window procedure
-        old_proc = user32.SetWindowLongW(
-            hwnd, -4, WNDPROC(window_proc)
-        )  # GWL_WNDPROC = -4
-
+        old_proc = user32.SetWindowLongW(hwnd, -4, WNDPROC(window_proc))  # GWL_WNDPROC = -4
+        
         return True
     except Exception:
         logger.debug("setup_taskbar_click_handler failed", exc_info=True)

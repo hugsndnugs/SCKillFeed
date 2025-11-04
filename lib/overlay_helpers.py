@@ -65,57 +65,16 @@ class KillTrackerOverlay:
 
     # Available stats and their display configuration
     AVAILABLE_STATS = {
-        "kills": {
-            "label": "Kills",
-            "accent": "accent_kill",
-            "key": "total_kills",
-            "format": "int",
-        },
-        "deaths": {
-            "label": "Deaths",
-            "accent": "accent_death",
-            "key": "total_deaths",
-            "format": "int",
-        },
-        "kd": {
-            "label": "K/D",
-            "accent": "accent_kd",
-            "key": "kd_ratio",
-            "format": "float",
-        },
-        "streak": {
-            "label": "Streak",
-            "accent": "accent_streak",
-            "key": "current_streak",
-            "format": "int",
-        },
-        "max_kill_streak": {
-            "label": "Max K Streak",
-            "accent": "accent_streak",
-            "key": "max_kill_streak",
-            "format": "int",
-        },
-        "max_death_streak": {
-            "label": "Max D Streak",
-            "accent": "accent_death",
-            "key": "max_death_streak",
-            "format": "int",
-        },
-        "time_since_last": {
-            "label": "Time Since",
-            "accent": "accent_kd",
-            "key": "time_since_last",
-            "format": "time",
-        },
+        "kills": {"label": "Kills", "accent": "accent_kill", "key": "total_kills", "format": "int"},
+        "deaths": {"label": "Deaths", "accent": "accent_death", "key": "total_deaths", "format": "int"},
+        "kd": {"label": "K/D", "accent": "accent_kd", "key": "kd_ratio", "format": "float"},
+        "streak": {"label": "Streak", "accent": "accent_streak", "key": "current_streak", "format": "int"},
+        "max_kill_streak": {"label": "Max K Streak", "accent": "accent_streak", "key": "max_kill_streak", "format": "int"},
+        "max_death_streak": {"label": "Max D Streak", "accent": "accent_death", "key": "max_death_streak", "format": "int"},
+        "time_since_last": {"label": "Time Since", "accent": "accent_kd", "key": "time_since_last", "format": "time"},
     }
 
-    def __init__(
-        self,
-        gui,
-        theme: str = "dark",
-        position: Tuple[int, int] = (50, 50),
-        enabled_stats: Optional[Dict[str, bool]] = None,
-    ):
+    def __init__(self, gui, theme: str = "dark", position: Tuple[int, int] = (50, 50), enabled_stats: Optional[Dict[str, bool]] = None):
         """Initialize the overlay window.
 
         Args:
@@ -136,7 +95,7 @@ class KillTrackerOverlay:
         self._dragging = False
         self._custom_opacity = None  # User-set opacity override
         self._locked = False  # Lock state to prevent dragging
-
+        
         # Stat configuration - defaults to showing kills, deaths, kd, streak
         if enabled_stats is None:
             enabled_stats = {
@@ -148,7 +107,7 @@ class KillTrackerOverlay:
                 "max_death_streak": False,
             }
         self.enabled_stats = enabled_stats
-
+        
         # Store stat label widgets
         self.stat_widgets = {}
 
@@ -230,7 +189,9 @@ class KillTrackerOverlay:
         header.pack()
 
         # Separator
-        separator = tk.Frame(main_frame, bg=self.theme["border"], height=1, pady=2)
+        separator = tk.Frame(
+            main_frame, bg=self.theme["border"], height=1, pady=2
+        )
         separator.pack(fill=tk.X, pady=1)
 
         # Stats container
@@ -244,7 +205,7 @@ class KillTrackerOverlay:
         for stat_name in self.AVAILABLE_STATS.keys():
             if self.enabled_stats.get(stat_name, False):
                 stat_config = self.AVAILABLE_STATS[stat_name]
-
+                
                 # Create frame for this stat
                 stat_frame = tk.Frame(stats_container, bg=self.theme["bg"])
                 stat_frame.pack(fill=tk.X, pady=1)
@@ -268,7 +229,7 @@ class KillTrackerOverlay:
                     default_text = "0.00"
                 else:
                     default_text = "0"
-
+                
                 value_label = tk.Label(
                     stat_frame,
                     text=default_text,
@@ -279,27 +240,25 @@ class KillTrackerOverlay:
                     anchor="e",
                 )
                 value_label.pack(side=tk.RIGHT)
-
+                
                 # Store widget reference
                 self.stat_widgets[stat_name] = value_label
 
         # Make entire window draggable
         self._setup_dragging()
-
+    
     def _update_window_size(self):
         """Update window size based on number of visible stats."""
         try:
             # Count visible stats
             visible_count = sum(1 for enabled in self.enabled_stats.values() if enabled)
-
+            
             # Base height: header (25) + separator (5) + padding (16) + per-stat (22)
             # Width: fixed at 200 for now
             height = 25 + 5 + 16 + (visible_count * 22) if visible_count > 0 else 50
             width = 200
-
-            self.root.geometry(
-                f"{width}x{height}+{self.position[0]}+{self.position[1]}"
-            )
+            
+            self.root.geometry(f"{width}x{height}+{self.position[0]}+{self.position[1]}")
         except Exception as e:
             logger.debug(f"Error updating window size: {e}", exc_info=True)
             # Fallback to default size
@@ -307,7 +266,6 @@ class KillTrackerOverlay:
 
     def _setup_dragging(self):
         """Make the overlay window draggable by clicking anywhere, unless locked."""
-
         def start_drag(event):
             # Don't allow dragging if locked
             if self._locked:
@@ -348,22 +306,22 @@ class KillTrackerOverlay:
             widget.bind("<ButtonPress-1>", start_drag)
             widget.bind("<B1-Motion>", on_drag)
             widget.bind("<ButtonRelease-1>", stop_drag)
-
+    
     def set_locked(self, locked: bool):
         """Set the lock state of the overlay.
-
+        
         Args:
             locked: True to lock (prevent dragging), False to unlock (allow dragging)
         """
         self._locked = locked
         # Update header to show lock status
         self._update_lock_indicator()
-
+    
     def toggle_lock(self):
         """Toggle the lock state."""
         self.set_locked(not self._locked)
         return self._locked
-
+    
     def _update_lock_indicator(self):
         """Update the header to show lock/unlock status."""
         try:
@@ -377,9 +335,7 @@ class KillTrackerOverlay:
                                 # Update text to show lock status
                                 lock_icon = "🔒" if self._locked else "🔓"
                                 # Remove old lock icon if present and extract base text
-                                base_text = (
-                                    text.replace("🔒", "").replace("🔓", "").strip()
-                                )
+                                base_text = text.replace("🔒", "").replace("🔓", "").strip()
                                 # Keep the sword emoji and text
                                 if "⚔" in base_text:
                                     child.config(text=f"{lock_icon} {base_text}")
@@ -439,7 +395,7 @@ class KillTrackerOverlay:
                     "max_kill_streak": self.gui.stats.get("max_kill_streak", 0),
                     "max_death_streak": self.gui.stats.get("max_death_streak", 0),
                 }
-
+                
                 # Get last kill time for time since calculation
                 last_kill_time = getattr(self.gui, "last_kill_time", None)
 
@@ -450,14 +406,14 @@ class KillTrackerOverlay:
                 kd_ratio = (
                     stats_copy["total_kills"] if stats_copy["total_kills"] > 0 else 0.0
                 )
-
+            
             # Calculate current streak (positive for kill streak, negative for death streak)
             current_streak = (
                 stats_copy["kill_streak"]
                 if stats_copy["kill_streak"] > 0
                 else -stats_copy["death_streak"]
             )
-
+            
             # Calculate time since last kill/death
             if last_kill_time is None or last_kill_time == "":
                 time_since_last = "--:--:--"
@@ -467,7 +423,7 @@ class KillTrackerOverlay:
                 hours, remainder = divmod(total_seconds, 3600)
                 minutes, seconds = divmod(remainder, 60)
                 time_since_last = f"{hours:d}:{minutes:02d}:{seconds:02d}"
-
+            
             # Map of stat keys to their computed values
             stat_values = {
                 "total_kills": stats_copy["total_kills"],
@@ -485,7 +441,7 @@ class KillTrackerOverlay:
                 if stat_config and widget:
                     stat_key = stat_config["key"]
                     value = stat_values.get(stat_key, 0)
-
+                    
                     # Format value based on type
                     if stat_config["format"] == "float":
                         formatted_value = f"{value:.2f}"
@@ -494,7 +450,7 @@ class KillTrackerOverlay:
                         formatted_value = value
                     else:
                         formatted_value = str(value)
-
+                    
                     widget.config(text=formatted_value)
 
         except Exception as e:
@@ -502,7 +458,7 @@ class KillTrackerOverlay:
 
     def set_opacity(self, opacity: float):
         """Set the overlay window opacity.
-
+        
         Args:
             opacity: Opacity value between 0.3 and 1.0 (0.3 = 30% visible, 1.0 = fully opaque)
         """
@@ -514,15 +470,15 @@ class KillTrackerOverlay:
             self._custom_opacity = opacity
         except Exception as e:
             logger.debug(f"Error setting overlay opacity: {e}", exc_info=True)
-
+    
     def set_enabled_stats(self, enabled_stats: Dict[str, bool]):
         """Update which stats are enabled and recreate UI.
-
+        
         Args:
             enabled_stats: Dictionary of stat names to boolean indicating which stats to show
         """
         self.enabled_stats = enabled_stats
-
+        
         # Recreate UI with new stat configuration
         try:
             # Destroy existing widgets
@@ -540,7 +496,7 @@ class KillTrackerOverlay:
 
         except Exception as e:
             logger.debug(f"Error updating enabled stats: {e}", exc_info=True)
-
+    
     def change_theme(self, theme_name: str):
         """Change the overlay theme."""
         if theme_name not in OVERLAY_THEMES:
@@ -567,7 +523,7 @@ class KillTrackerOverlay:
                     self.root.attributes("-alpha", self.theme.get("alpha", 0.92))
             except Exception:
                 pass
-
+            
             # Update window size
             self._update_window_size()
 
@@ -597,7 +553,6 @@ class KillTrackerOverlay:
                 self.gui.config["overlay"]["position_x"] = str(self.position[0])
                 self.gui.config["overlay"]["position_y"] = str(self.position[1])
                 from lib.config_helpers import save_config
-
                 save_config(self.gui.config, self.gui.config_path)
         except Exception as e:
             logger.debug(f"Error saving overlay position: {e}", exc_info=True)
@@ -610,12 +565,7 @@ class KillTrackerOverlay:
             pass
 
 
-def create_overlay(
-    gui,
-    theme: str = "dark",
-    position: Optional[Tuple[int, int]] = None,
-    enabled_stats: Optional[Dict[str, bool]] = None,
-) -> KillTrackerOverlay:
+def create_overlay(gui, theme: str = "dark", position: Optional[Tuple[int, int]] = None, enabled_stats: Optional[Dict[str, bool]] = None) -> KillTrackerOverlay:
     """Create and return a new KillTrackerOverlay instance.
 
     Args:
@@ -635,7 +585,6 @@ def create_overlay(
         except Exception:
             position = (50, 50)
 
-    overlay = KillTrackerOverlay(
-        gui, theme=theme, position=position, enabled_stats=enabled_stats
-    )
+    overlay = KillTrackerOverlay(gui, theme=theme, position=position, enabled_stats=enabled_stats)
     return overlay
+
