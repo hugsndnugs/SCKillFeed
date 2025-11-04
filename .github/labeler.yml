@@ -1,0 +1,40 @@
+# Auto-label PRs based on files changed
+python:
+  - '*.py'
+  - '**/*.py'
+
+tests:
+  - 'tests/**/*'
+  - '**/*test*.py'
+  - 'test_*.py'
+
+documentation:
+  - '*.md'
+  - 'docs/**/*'
+  - 'README.md'
+  - 'LICENSE.md'
+
+ci-cd:
+  - '.github/workflows/**/*'
+  - '.github/dependabot.yml'
+  - 'build.ps1'
+  - '*.spec'
+
+config:
+  - '*.cfg'
+  - '*.toml'
+  - '*.ini'
+  - '*.json'
+  - 'requirements*.txt'
+
+ui:
+  - 'sc_kill_feed_gui.py'
+  - 'lib/ui_helpers.py'
+  - 'lib/overlay_helpers.py'
+
+lib:
+  - 'lib/**/*.py'
+
+assets:
+  - 'assets/**/*'
+
