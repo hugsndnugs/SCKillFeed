@@ -1237,6 +1237,7 @@ def create_lifetime_stats_tab(gui):
         lifetime_frame = ttk.Frame(gui.notebook)
         gui.notebook.add(lifetime_frame, text=TAB_LIFETIME_STATS)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         # Control buttons frame at top
         control_frame = ttk.Frame(lifetime_frame, style=STYLE_CARD_FRAME)
@@ -1246,6 +1247,8 @@ def create_lifetime_stats_tab(gui):
         buttons_frame.pack(padx=15, pady=15)
 
 =======
+=======
+>>>>>>> Stashed changes
         
         # Control buttons frame at top
         control_frame = ttk.Frame(lifetime_frame, style=STYLE_CARD_FRAME)
@@ -1254,6 +1257,9 @@ def create_lifetime_stats_tab(gui):
         buttons_frame = ttk.Frame(control_frame)
         buttons_frame.pack(padx=15, pady=15)
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         # Refresh button (bypasses cache)
         refresh_btn = ttk.Button(
@@ -1264,7 +1270,11 @@ def create_lifetime_stats_tab(gui):
         )
         refresh_btn.pack(side=tk.LEFT, padx=5)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1279,6 +1289,7 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_status_label.pack(padx=15, pady=(0, 5))
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         # Progress bar (hidden by default)
         gui.lifetime_progress_bar = ttk.Progressbar(
@@ -1289,6 +1300,8 @@ def create_lifetime_stats_tab(gui):
         # Don't pack initially - will be shown during loading
 
 =======
+=======
+>>>>>>> Stashed changes
         
         # Progress bar (hidden by default)
         gui.lifetime_progress_bar = ttk.Progressbar(
@@ -1298,6 +1311,9 @@ def create_lifetime_stats_tab(gui):
         )
         # Don't pack initially - will be shown during loading
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         # Create scrollable canvas for the content
         canvas = tk.Canvas(
@@ -1312,6 +1328,7 @@ def create_lifetime_stats_tab(gui):
         )
         scrollable_frame = ttk.Frame(canvas)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         def update_scroll_region(event=None):
             canvas.configure(scrollregion=canvas.bbox("all"))
@@ -1319,17 +1336,23 @@ def create_lifetime_stats_tab(gui):
         scrollable_frame.bind("<Configure>", update_scroll_region)
 
 =======
+=======
+>>>>>>> Stashed changes
         
         def update_scroll_region(event=None):
             canvas.configure(scrollregion=canvas.bbox("all"))
         
         scrollable_frame.bind("<Configure>", update_scroll_region)
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         def on_canvas_configure(event):
             canvas_width = event.width
             canvas.itemconfig(canvas_frame, width=canvas_width)
             update_scroll_region()
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
         canvas_frame = canvas.create_window(
@@ -1349,6 +1372,8 @@ def create_lifetime_stats_tab(gui):
         canvas.bind("<MouseWheel>", on_mousewheel)
 
 =======
+=======
+>>>>>>> Stashed changes
         
         canvas_frame = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.bind("<Configure>", on_canvas_configure)
@@ -1363,6 +1388,9 @@ def create_lifetime_stats_tab(gui):
             canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
         canvas.bind("<MouseWheel>", on_mousewheel)
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         # Core metrics section
         metrics_frame = ttk.LabelFrame(
@@ -1370,15 +1398,21 @@ def create_lifetime_stats_tab(gui):
         )
         metrics_frame.pack(fill=tk.X, padx=15, pady=15)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         metrics_grid = ttk.Frame(metrics_frame)
         metrics_grid.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
 
 =======
+=======
+>>>>>>> Stashed changes
         
         metrics_grid = ttk.Frame(metrics_frame)
         metrics_grid.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         # Create metric labels (will be updated when data loads)
         gui.lifetime_kills_label = tk.Label(
@@ -1392,7 +1426,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_kills_label.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1407,7 +1445,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_deaths_label.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1422,7 +1464,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_kd_label.grid(row=0, column=2, padx=10, pady=5, sticky="ew")
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1437,7 +1483,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_sessions_label.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1451,10 +1501,15 @@ def create_lifetime_stats_tab(gui):
             pady=10,
         )
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         gui.lifetime_first_kill_label.grid(
             row=1, column=1, padx=10, pady=5, sticky="ew"
         )
 
+=======
+        gui.lifetime_first_kill_label.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+        
+>>>>>>> Stashed changes
 =======
         gui.lifetime_first_kill_label.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
         
@@ -1470,7 +1525,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_last_kill_label.grid(row=1, column=2, padx=10, pady=5, sticky="ew")
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1485,7 +1544,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_play_time_label.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1499,6 +1562,7 @@ def create_lifetime_stats_tab(gui):
             pady=10,
         )
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         gui.lifetime_suicide_count_label.grid(
             row=2, column=1, padx=10, pady=5, sticky="ew"
         )
@@ -1508,12 +1572,17 @@ def create_lifetime_stats_tab(gui):
         metrics_grid.columnconfigure(2, weight=1)
 
 =======
+=======
+>>>>>>> Stashed changes
         gui.lifetime_suicide_count_label.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
         
         metrics_grid.columnconfigure(0, weight=1)
         metrics_grid.columnconfigure(1, weight=1)
         metrics_grid.columnconfigure(2, weight=1)
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         # Weapon statistics section
         weapons_frame = ttk.LabelFrame(
@@ -1521,15 +1590,21 @@ def create_lifetime_stats_tab(gui):
         )
         weapons_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         weapons_info_frame = ttk.Frame(weapons_frame)
         weapons_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
 
 =======
+=======
+>>>>>>> Stashed changes
         
         weapons_info_frame = ttk.Frame(weapons_frame)
         weapons_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         gui.lifetime_most_used_label = tk.Label(
             weapons_info_frame,
@@ -1541,7 +1616,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_most_used_label.pack(side=tk.LEFT, padx=10)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1555,7 +1634,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_most_effective_label.pack(side=tk.LEFT, padx=10)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1566,6 +1649,7 @@ def create_lifetime_stats_tab(gui):
             show="tree headings",
             height=10,
         )
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
         gui.lifetime_weapons_tree.heading(
             "#0",
@@ -1615,6 +1699,8 @@ def create_lifetime_stats_tab(gui):
             ),
         )
 =======
+=======
+>>>>>>> Stashed changes
         gui.lifetime_weapons_tree.heading("#0", text="Weapon", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "#0", False))
         gui.lifetime_weapons_tree.heading("kills", text="Kills", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "kills", False, numeric=True))
         gui.lifetime_weapons_tree.heading("deaths", text="Deaths", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "deaths", False, numeric=True))
@@ -1622,6 +1708,9 @@ def create_lifetime_stats_tab(gui):
         gui.lifetime_weapons_tree.heading("usage_pct", text="Usage %", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "usage_pct", False, numeric=True))
         gui.lifetime_weapons_tree.heading("first_use", text="First Use", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "first_use", False))
         gui.lifetime_weapons_tree.heading("last_use", text="Last Use", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "last_use", False))
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         gui.lifetime_weapons_tree.column("#0", width=200)
         gui.lifetime_weapons_tree.column("kills", width=80)
@@ -1632,7 +1721,11 @@ def create_lifetime_stats_tab(gui):
         gui.lifetime_weapons_tree.column("last_use", width=150)
         gui.lifetime_weapons_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1642,15 +1735,21 @@ def create_lifetime_stats_tab(gui):
         )
         pvp_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         pvp_info_frame = ttk.Frame(pvp_frame)
         pvp_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
 
 =======
+=======
+>>>>>>> Stashed changes
         
         pvp_info_frame = ttk.Frame(pvp_frame)
         pvp_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         gui.lifetime_most_killed_label = tk.Label(
             pvp_info_frame,
@@ -1662,7 +1761,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_most_killed_label.pack(side=tk.LEFT, padx=10)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1676,7 +1779,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_nemesis_label.pack(side=tk.LEFT, padx=10)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1687,6 +1794,7 @@ def create_lifetime_stats_tab(gui):
             show="tree headings",
             height=8,
         )
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
         gui.lifetime_rivals_tree.heading(
             "#0",
@@ -1722,11 +1830,16 @@ def create_lifetime_stats_tab(gui):
             ),
         )
 =======
+=======
+>>>>>>> Stashed changes
         gui.lifetime_rivals_tree.heading("#0", text="Player", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "#0", False))
         gui.lifetime_rivals_tree.heading("killed_them", text="Killed", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "killed_them", False, numeric=True))
         gui.lifetime_rivals_tree.heading("killed_by_them", text="Killed By", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "killed_by_them", False, numeric=True))
         gui.lifetime_rivals_tree.heading("h2h_kd", text="H2H K/D", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "h2h_kd", False, numeric=True))
         gui.lifetime_rivals_tree.heading("last_encounter", text="Last Encounter", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "last_encounter", False))
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         gui.lifetime_rivals_tree.column("#0", width=200)
         gui.lifetime_rivals_tree.column("killed_them", width=100)
@@ -1735,7 +1848,11 @@ def create_lifetime_stats_tab(gui):
         gui.lifetime_rivals_tree.column("last_encounter", width=150)
         gui.lifetime_rivals_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1745,15 +1862,21 @@ def create_lifetime_stats_tab(gui):
         )
         streaks_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         streaks_info_frame = ttk.Frame(streaks_frame)
         streaks_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
 
 =======
+=======
+>>>>>>> Stashed changes
         
         streaks_info_frame = ttk.Frame(streaks_frame)
         streaks_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         gui.lifetime_max_kill_streak_label = tk.Label(
             streaks_info_frame,
@@ -1765,7 +1888,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_max_kill_streak_label.pack(side=tk.LEFT, padx=10)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1779,7 +1906,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_max_death_streak_label.pack(side=tk.LEFT, padx=10)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1793,7 +1924,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_avg_kill_streak_label.pack(side=tk.LEFT, padx=10)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1805,6 +1940,7 @@ def create_lifetime_stats_tab(gui):
             height=8,
         )
         gui.lifetime_streaks_tree.heading("#0", text="Rank")
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
         gui.lifetime_streaks_tree.heading(
             "type",
@@ -1829,10 +1965,15 @@ def create_lifetime_stats_tab(gui):
             command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "end", False),
         )
 =======
+=======
+>>>>>>> Stashed changes
         gui.lifetime_streaks_tree.heading("type", text="Type", command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "type", False))
         gui.lifetime_streaks_tree.heading("length", text="Length", command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "length", False, numeric=True))
         gui.lifetime_streaks_tree.heading("start", text="Start Date", command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "start", False))
         gui.lifetime_streaks_tree.heading("end", text="End Date", command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "end", False))
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         gui.lifetime_streaks_tree.column("#0", width=60)
         gui.lifetime_streaks_tree.column("type", width=100)
@@ -1841,7 +1982,11 @@ def create_lifetime_stats_tab(gui):
         gui.lifetime_streaks_tree.column("end", width=150)
         gui.lifetime_streaks_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1851,15 +1996,21 @@ def create_lifetime_stats_tab(gui):
         )
         trends_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         trends_info_frame = ttk.Frame(trends_frame)
         trends_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
 
 =======
+=======
+>>>>>>> Stashed changes
         
         trends_info_frame = ttk.Frame(trends_frame)
         trends_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         gui.lifetime_best_day_label = tk.Label(
             trends_info_frame,
@@ -1871,7 +2022,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_best_day_label.pack(side=tk.LEFT, padx=10)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1885,7 +2040,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_best_week_label.pack(side=tk.LEFT, padx=10)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1899,15 +2058,21 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_best_month_label.pack(side=tk.LEFT, padx=10)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         trends_details_frame = ttk.Frame(trends_frame)
         trends_details_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
 
 =======
+=======
+>>>>>>> Stashed changes
         
         trends_details_frame = ttk.Frame(trends_frame)
         trends_details_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         gui.lifetime_most_active_day_label = tk.Label(
             trends_details_frame,
@@ -1919,7 +2084,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_most_active_day_label.pack(side=tk.LEFT, padx=10)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1933,7 +2102,11 @@ def create_lifetime_stats_tab(gui):
         )
         gui.lifetime_most_active_hour_label.pack(side=tk.LEFT, padx=10)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -1943,15 +2116,21 @@ def create_lifetime_stats_tab(gui):
         )
         advanced_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         advanced_grid = ttk.Frame(advanced_frame)
         advanced_grid.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
 
 =======
+=======
+>>>>>>> Stashed changes
         
         advanced_grid = ttk.Frame(advanced_frame)
         advanced_grid.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         gui.lifetime_kills_per_session_label = tk.Label(
             advanced_grid,
@@ -1963,10 +2142,15 @@ def create_lifetime_stats_tab(gui):
             pady=10,
         )
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         gui.lifetime_kills_per_session_label.grid(
             row=0, column=0, padx=10, pady=5, sticky="ew"
         )
 
+=======
+        gui.lifetime_kills_per_session_label.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
+        
+>>>>>>> Stashed changes
 =======
         gui.lifetime_kills_per_session_label.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
         
@@ -1981,6 +2165,7 @@ def create_lifetime_stats_tab(gui):
             pady=10,
         )
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         gui.lifetime_survival_rate_label.grid(
             row=0, column=1, padx=10, pady=5, sticky="ew"
         )
@@ -1989,11 +2174,16 @@ def create_lifetime_stats_tab(gui):
         advanced_grid.columnconfigure(1, weight=1)
 
 =======
+=======
+>>>>>>> Stashed changes
         gui.lifetime_survival_rate_label.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
         
         advanced_grid.columnconfigure(0, weight=1)
         advanced_grid.columnconfigure(1, weight=1)
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         # Timeline & Milestones section
         milestones_frame = ttk.LabelFrame(
@@ -2001,7 +2191,11 @@ def create_lifetime_stats_tab(gui):
         )
         milestones_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -2013,6 +2207,7 @@ def create_lifetime_stats_tab(gui):
             height=8,
         )
         gui.lifetime_milestones_tree.heading("#0", text="#")
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
         gui.lifetime_milestones_tree.heading(
             "milestone",
@@ -2042,6 +2237,8 @@ def create_lifetime_stats_tab(gui):
         recent_history_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
 
 =======
+=======
+>>>>>>> Stashed changes
         gui.lifetime_milestones_tree.heading("milestone", text="Milestone", command=lambda: _sort_treeview(gui.lifetime_milestones_tree, "milestone", False))
         gui.lifetime_milestones_tree.heading("date", text="Date Achieved", command=lambda: _sort_treeview(gui.lifetime_milestones_tree, "date", False))
         gui.lifetime_milestones_tree.column("#0", width=60)
@@ -2055,6 +2252,9 @@ def create_lifetime_stats_tab(gui):
         )
         recent_history_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         # Recent history table
         gui.lifetime_recent_history_tree = ttk.Treeview(
@@ -2064,6 +2264,7 @@ def create_lifetime_stats_tab(gui):
             height=12,
         )
         gui.lifetime_recent_history_tree.heading("#0", text="#")
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
         gui.lifetime_recent_history_tree.heading(
             "timestamp",
@@ -2101,11 +2302,16 @@ def create_lifetime_stats_tab(gui):
             ),
         )
 =======
+=======
+>>>>>>> Stashed changes
         gui.lifetime_recent_history_tree.heading("timestamp", text="Date/Time", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "timestamp", False))
         gui.lifetime_recent_history_tree.heading("killer", text="Killer", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "killer", False))
         gui.lifetime_recent_history_tree.heading("victim", text="Victim", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "victim", False))
         gui.lifetime_recent_history_tree.heading("weapon", text="Weapon", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "weapon", False))
         gui.lifetime_recent_history_tree.heading("event", text="Event", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "event", False))
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         gui.lifetime_recent_history_tree.column("#0", width=50)
         gui.lifetime_recent_history_tree.column("timestamp", width=150)
@@ -2114,10 +2320,15 @@ def create_lifetime_stats_tab(gui):
         gui.lifetime_recent_history_tree.column("weapon", width=150)
         gui.lifetime_recent_history_tree.column("event", width=300)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         gui.lifetime_recent_history_tree.pack(
             fill=tk.BOTH, expand=True, padx=15, pady=(15, 15)
         )
 
+=======
+        gui.lifetime_recent_history_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(15, 15))
+        
+>>>>>>> Stashed changes
 =======
         gui.lifetime_recent_history_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(15, 15))
         
@@ -2131,7 +2342,11 @@ def create_lifetime_stats_tab(gui):
         )
         export_btn.pack(side=tk.LEFT, padx=5)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -2143,7 +2358,11 @@ def _sort_treeview(tree, col, reverse, numeric=False):
     """Sort treeview column when clicked."""
     try:
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         l = [(tree.set(k, col), k) for k in tree.get_children("")]
+=======
+        l = [(tree.set(k, col), k) for k in tree.get_children('')]
+>>>>>>> Stashed changes
 =======
         l = [(tree.set(k, col), k) for k in tree.get_children('')]
 >>>>>>> Stashed changes
@@ -2152,6 +2371,7 @@ def _sort_treeview(tree, col, reverse, numeric=False):
             def try_float(x):
                 try:
                     # Remove % and other non-numeric chars
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
                     val = x[0].replace("%", "").strip()
                     return float(val)
@@ -2171,6 +2391,8 @@ def _sort_treeview(tree, col, reverse, numeric=False):
             col, command=lambda: _sort_treeview(tree, col, not reverse, numeric)
         )
 =======
+=======
+>>>>>>> Stashed changes
                     val = x[0].replace('%', '').strip()
                     return float(val)
                 except (ValueError, IndexError):
@@ -2185,6 +2407,9 @@ def _sort_treeview(tree, col, reverse, numeric=False):
         
         # Reverse sort next time
         tree.heading(col, command=lambda: _sort_treeview(tree, col, not reverse, numeric))
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     except Exception:
         logger.debug("Error sorting treeview", exc_info=True)

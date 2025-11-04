@@ -17,17 +17,23 @@ logger = logging.getLogger(__name__)
 def load_lifetime_data(csv_path: str, player_name: str) -> List[Dict]:
     """Load kill data from CSV file, filtering for player-specific events.
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     Args:
         csv_path: Path to the CSV file containing kill logs
         player_name: Player name to filter events for (case-insensitive)
 
 =======
+=======
+>>>>>>> Stashed changes
     
     Args:
         csv_path: Path to the CSV file containing kill logs
         player_name: Player name to filter events for (case-insensitive)
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     Returns:
         List of kill event dictionaries with keys: timestamp, killer, victim, weapon
@@ -35,22 +41,29 @@ def load_lifetime_data(csv_path: str, player_name: str) -> List[Dict]:
     """
     kill_data = []
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     if not csv_path or not player_name:
         logger.debug("Missing csv_path or player_name for lifetime stats")
         return kill_data
 
 =======
+=======
+>>>>>>> Stashed changes
     
     if not csv_path or not player_name:
         logger.debug("Missing csv_path or player_name for lifetime stats")
         return kill_data
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     try:
         if not os.path.exists(csv_path):
             logger.debug(f"CSV file not found: {csv_path}")
             return kill_data
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
         player_name_lower = player_name.lower()
@@ -67,6 +80,8 @@ def load_lifetime_data(csv_path: str, player_name: str) -> List[Dict]:
                 return kill_data
 
 =======
+=======
+>>>>>>> Stashed changes
         
         player_name_lower = player_name.lower()
         
@@ -79,6 +94,9 @@ def load_lifetime_data(csv_path: str, player_name: str) -> List[Dict]:
                 logger.warning(f"CSV missing required columns. Found: {reader.fieldnames}")
                 return kill_data
             
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
             for row_idx, row in enumerate(reader, start=2):  # Start at 2 (header + 1)
                 try:
@@ -86,6 +104,7 @@ def load_lifetime_data(csv_path: str, player_name: str) -> List[Dict]:
                     killer = row.get("killer", "").strip()
                     victim = row.get("victim", "").strip()
                     weapon = row.get("weapon", "").strip()
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
                     # Skip rows with "unknown" values (case-insensitive)
@@ -104,6 +123,8 @@ def load_lifetime_data(csv_path: str, player_name: str) -> List[Dict]:
                         continue
 
 =======
+=======
+>>>>>>> Stashed changes
                     
                     # Skip rows with "unknown" values (case-insensitive)
                     if killer.lower() == "unknown" or victim.lower() == "unknown" or weapon.lower() == "unknown":
@@ -116,12 +137,16 @@ def load_lifetime_data(csv_path: str, player_name: str) -> List[Dict]:
                     if player_name_lower not in (killer_lower, victim_lower):
                         continue
                     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
                     # Parse timestamp
                     timestamp_str = row.get("timestamp", "")
                     try:
                         # Try ISO format first
                         if "T" in timestamp_str:
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
                             timestamp = datetime.fromisoformat(
                                 timestamp_str.replace("Z", "+00:00")
@@ -155,6 +180,8 @@ def load_lifetime_data(csv_path: str, player_name: str) -> List[Dict]:
         return kill_data
 
 =======
+=======
+>>>>>>> Stashed changes
                             timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
                         else:
                             # Try other common formats
@@ -178,6 +205,9 @@ def load_lifetime_data(csv_path: str, player_name: str) -> List[Dict]:
         logger.info(f"Loaded {len(kill_data)} kill events from {csv_path}")
         return kill_data
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     except PermissionError:
         logger.error(f"Permission denied reading CSV file: {csv_path}")
@@ -190,17 +220,23 @@ def load_lifetime_data(csv_path: str, player_name: str) -> List[Dict]:
 def calculate_lifetime_stats(kill_data: List[Dict], player_name: str) -> Dict:
     """Calculate comprehensive lifetime statistics from kill data.
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     Args:
         kill_data: List of kill event dictionaries
         player_name: Player name for filtering (case-insensitive)
 
 =======
+=======
+>>>>>>> Stashed changes
     
     Args:
         kill_data: List of kill event dictionaries
         player_name: Player name for filtering (case-insensitive)
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     Returns:
         Dictionary containing all lifetime statistics
@@ -216,22 +252,32 @@ def calculate_lifetime_stats(kill_data: List[Dict], player_name: str) -> Dict:
         "suicide_count": 0,
     }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     if not kill_data:
         return stats
 
 =======
+=======
+>>>>>>> Stashed changes
     
     if not kill_data:
         return stats
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     player_name_lower = player_name.lower()
     timestamps = []
     session_starts = []
     last_timestamp = None
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+    
+>>>>>>> Stashed changes
 =======
     
 >>>>>>> Stashed changes
@@ -240,7 +286,11 @@ def calculate_lifetime_stats(kill_data: List[Dict], player_name: str) -> Dict:
     victims = Counter()
     killers = Counter()
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+    
+>>>>>>> Stashed changes
 =======
     
 >>>>>>> Stashed changes
@@ -250,6 +300,7 @@ def calculate_lifetime_stats(kill_data: List[Dict], player_name: str) -> Dict:
         weapon = event.get("weapon", "")
         timestamp = event.get("timestamp")
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         if not isinstance(timestamp, datetime):
             continue
@@ -257,12 +308,17 @@ def calculate_lifetime_stats(kill_data: List[Dict], player_name: str) -> Dict:
         timestamps.append(timestamp)
 
 =======
+=======
+>>>>>>> Stashed changes
         
         if not isinstance(timestamp, datetime):
             continue
         
         timestamps.append(timestamp)
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         # Track session starts (events more than 2 hours apart)
         if last_timestamp:
@@ -273,15 +329,21 @@ def calculate_lifetime_stats(kill_data: List[Dict], player_name: str) -> Dict:
             session_starts.append(timestamp)
         last_timestamp = timestamp
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         killer_lower = killer.lower()
         victim_lower = victim.lower()
 
 =======
+=======
+>>>>>>> Stashed changes
         
         killer_lower = killer.lower()
         victim_lower = victim.lower()
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         # Handle suicides
         if killer_lower == victim_lower:
@@ -293,15 +355,21 @@ def calculate_lifetime_stats(kill_data: List[Dict], player_name: str) -> Dict:
                     weapons_against[weapon] += 1
             continue
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         # Skip unknown values in statistics
         weapon_lower = weapon.lower()
 
 =======
+=======
+>>>>>>> Stashed changes
         
         # Skip unknown values in statistics
         weapon_lower = weapon.lower()
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         # Player kills
         if killer_lower == player_name_lower:
@@ -312,7 +380,11 @@ def calculate_lifetime_stats(kill_data: List[Dict], player_name: str) -> Dict:
             if victim_lower != "unknown":
                 victims[victim] += 1
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -325,7 +397,11 @@ def calculate_lifetime_stats(kill_data: List[Dict], player_name: str) -> Dict:
             if killer_lower != "unknown":
                 killers[killer] += 1
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+    
+>>>>>>> Stashed changes
 =======
     
 >>>>>>> Stashed changes
@@ -334,6 +410,7 @@ def calculate_lifetime_stats(kill_data: List[Dict], player_name: str) -> Dict:
         stats["lifetime_kd_ratio"] = stats["total_kills"] / stats["total_deaths"]
     elif stats["total_kills"] > 0:
         stats["lifetime_kd_ratio"] = float(stats["total_kills"])
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
     if timestamps:
@@ -348,6 +425,8 @@ def calculate_lifetime_stats(kill_data: List[Dict], player_name: str) -> Dict:
     stats["total_sessions"] = len(session_starts)
 
 =======
+=======
+>>>>>>> Stashed changes
     
     if timestamps:
         stats["first_kill_date"] = min(timestamps)
@@ -358,6 +437,9 @@ def calculate_lifetime_stats(kill_data: List[Dict], player_name: str) -> Dict:
     # Estimate sessions (session starts + 1 for first session)
     stats["total_sessions"] = len(session_starts)
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     # Add counters to stats
     stats["weapons_used"] = weapons_used
@@ -365,7 +447,11 @@ def calculate_lifetime_stats(kill_data: List[Dict], player_name: str) -> Dict:
     stats["victims"] = victims
     stats["killers"] = killers
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+    
+>>>>>>> Stashed changes
 =======
     
 >>>>>>> Stashed changes
@@ -375,17 +461,23 @@ def calculate_lifetime_stats(kill_data: List[Dict], player_name: str) -> Dict:
 def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
     """Calculate detailed weapon statistics.
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     Args:
         kill_data: List of kill event dictionaries
         player_name: Player name for filtering
 
 =======
+=======
+>>>>>>> Stashed changes
     
     Args:
         kill_data: List of kill event dictionaries
         player_name: Player name for filtering
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     Returns:
         Dictionary with weapon statistics including mastery table
@@ -396,6 +488,7 @@ def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
         "mastery_table": [],
     }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     if not kill_data:
         return weapon_stats
@@ -403,12 +496,17 @@ def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
     player_name_lower = player_name.lower()
 
 =======
+=======
+>>>>>>> Stashed changes
     
     if not kill_data:
         return weapon_stats
     
     player_name_lower = player_name.lower()
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     # Track kills and deaths per weapon
     weapon_kills = Counter()
@@ -416,7 +514,11 @@ def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
     weapon_first_use = {}
     weapon_last_use = {}
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+    
+>>>>>>> Stashed changes
 =======
     
 >>>>>>> Stashed changes
@@ -426,17 +528,23 @@ def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
         weapon = event.get("weapon", "")
         timestamp = event.get("timestamp")
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         # Skip unknown weapons
         if weapon.lower() == "unknown":
             continue
 
 =======
+=======
+>>>>>>> Stashed changes
         
         # Skip unknown weapons
         if weapon.lower() == "unknown":
             continue
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         if killer == player_name_lower and killer != victim:
             weapon_kills[weapon] += 1
@@ -444,6 +552,7 @@ def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
                 weapon_first_use[weapon] = timestamp
             weapon_last_use[weapon] = timestamp
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         if victim == player_name_lower and killer != victim:
             weapon_deaths[weapon] += 1
@@ -453,6 +562,8 @@ def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
         weapon_stats["most_used"] = weapon_kills.most_common(1)[0]
 
 =======
+=======
+>>>>>>> Stashed changes
         
         if victim == player_name_lower and killer != victim:
             weapon_deaths[weapon] += 1
@@ -461,6 +572,9 @@ def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
     if weapon_kills:
         weapon_stats["most_used"] = weapon_kills.most_common(1)[0]
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     # Calculate K/D for each weapon and find most effective
     weapon_kd = {}
@@ -468,7 +582,11 @@ def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
         kills = weapon_kills.get(weapon, 0)
         deaths = weapon_deaths.get(weapon, 0)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -479,6 +597,7 @@ def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
         else:
             kd = 0.0
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         weapon_kd[weapon] = kd
 
@@ -490,6 +609,8 @@ def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
     mastery_list = []
 
 =======
+=======
+>>>>>>> Stashed changes
         
         weapon_kd[weapon] = kd
         
@@ -500,12 +621,16 @@ def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
     total_kills = sum(weapon_kills.values())
     mastery_list = []
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     for weapon in set(list(weapon_kills.keys()) + list(weapon_deaths.keys())):
         kills = weapon_kills.get(weapon, 0)
         deaths = weapon_deaths.get(weapon, 0)
         kd = weapon_kd.get(weapon, 0.0)
         usage_pct = (kills / total_kills * 100) if total_kills > 0 else 0.0
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
         mastery_list.append(
@@ -525,6 +650,8 @@ def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
     weapon_stats["mastery_table"] = mastery_list
 
 =======
+=======
+>>>>>>> Stashed changes
         
         mastery_list.append({
             "weapon": weapon,
@@ -540,6 +667,9 @@ def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
     mastery_list.sort(key=lambda x: x["kills"], reverse=True)
     weapon_stats["mastery_table"] = mastery_list
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     return weapon_stats
 
@@ -547,17 +677,23 @@ def get_weapon_stats(kill_data: List[Dict], player_name: str) -> Dict:
 def get_pvp_stats(kill_data: List[Dict], player_name: str) -> Dict:
     """Calculate player vs player statistics.
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     Args:
         kill_data: List of kill event dictionaries
         player_name: Player name for filtering
 
 =======
+=======
+>>>>>>> Stashed changes
     
     Args:
         kill_data: List of kill event dictionaries
         player_name: Player name for filtering
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     Returns:
         Dictionary with PvP statistics
@@ -568,6 +704,7 @@ def get_pvp_stats(kill_data: List[Dict], player_name: str) -> Dict:
         "rivals_table": [],
     }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     if not kill_data:
         return pvp_stats
@@ -575,19 +712,28 @@ def get_pvp_stats(kill_data: List[Dict], player_name: str) -> Dict:
     player_name_lower = player_name.lower()
 
 =======
+=======
+>>>>>>> Stashed changes
     
     if not kill_data:
         return pvp_stats
     
     player_name_lower = player_name.lower()
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     # Track encounters with each player
     player_kills = Counter()  # How many times you killed them
     player_deaths = Counter()  # How many times they killed you
     last_encounter = {}
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+    
+>>>>>>> Stashed changes
 =======
     
 >>>>>>> Stashed changes
@@ -596,6 +742,7 @@ def get_pvp_stats(kill_data: List[Dict], player_name: str) -> Dict:
         victim = event.get("victim", "").lower()
         timestamp = event.get("timestamp")
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
         # Skip unknown players
         if killer == "unknown" or victim == "unknown":
@@ -606,6 +753,8 @@ def get_pvp_stats(kill_data: List[Dict], player_name: str) -> Dict:
             continue
 
 =======
+=======
+>>>>>>> Stashed changes
         
         # Skip unknown players
         if killer == "unknown" or victim == "unknown":
@@ -615,13 +764,20 @@ def get_pvp_stats(kill_data: List[Dict], player_name: str) -> Dict:
         if killer == victim:
             continue
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         # You killed someone
         if killer == player_name_lower:
             player_kills[victim] += 1
             last_encounter[victim] = timestamp
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
+=======
+        
+>>>>>>> Stashed changes
 =======
         
 >>>>>>> Stashed changes
@@ -630,6 +786,7 @@ def get_pvp_stats(kill_data: List[Dict], player_name: str) -> Dict:
             player_deaths[killer] += 1
             last_encounter[killer] = timestamp
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     # Find most killed player
     if player_kills:
@@ -648,6 +805,8 @@ def get_pvp_stats(kill_data: List[Dict], player_name: str) -> Dict:
         deaths = player_deaths.get(player, 0)
 
 =======
+=======
+>>>>>>> Stashed changes
     
     # Find most killed player
     if player_kills:
@@ -665,6 +824,9 @@ def get_pvp_stats(kill_data: List[Dict], player_name: str) -> Dict:
         kills = player_kills.get(player, 0)
         deaths = player_deaths.get(player, 0)
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         # Calculate head-to-head K/D
         if deaths > 0:
@@ -673,6 +835,7 @@ def get_pvp_stats(kill_data: List[Dict], player_name: str) -> Dict:
             h2h_kd = float(kills)
         else:
             h2h_kd = 0.0
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
         rivals_list.append(
@@ -690,6 +853,8 @@ def get_pvp_stats(kill_data: List[Dict], player_name: str) -> Dict:
     pvp_stats["rivals_table"] = rivals_list
 
 =======
+=======
+>>>>>>> Stashed changes
         
         rivals_list.append({
             "player": player,
@@ -703,6 +868,9 @@ def get_pvp_stats(kill_data: List[Dict], player_name: str) -> Dict:
     rivals_list.sort(key=lambda x: x["killed_them"] + x["killed_by_them"], reverse=True)
     pvp_stats["rivals_table"] = rivals_list
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     return pvp_stats
 
@@ -710,17 +878,23 @@ def get_pvp_stats(kill_data: List[Dict], player_name: str) -> Dict:
 def get_time_trends(kill_data: List[Dict], player_name: str) -> Dict:
     """Calculate time-based trends and statistics.
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     Args:
         kill_data: List of kill event dictionaries
         player_name: Player name for filtering
 
 =======
+=======
+>>>>>>> Stashed changes
     
     Args:
         kill_data: List of kill event dictionaries
         player_name: Player name for filtering
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     Returns:
         Dictionary with time-based trends
@@ -736,6 +910,7 @@ def get_time_trends(kill_data: List[Dict], player_name: str) -> Dict:
         "kills_by_day_of_week": Counter(),
     }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     if not kill_data:
         return trends
@@ -743,18 +918,24 @@ def get_time_trends(kill_data: List[Dict], player_name: str) -> Dict:
     player_name_lower = player_name.lower()
 
 =======
+=======
+>>>>>>> Stashed changes
     
     if not kill_data:
         return trends
     
     player_name_lower = player_name.lower()
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     for event in kill_data:
         killer = event.get("killer", "").lower()
         victim = event.get("victim", "").lower()
         weapon = event.get("weapon", "")
         timestamp = event.get("timestamp")
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
         if not isinstance(timestamp, datetime):
@@ -789,6 +970,8 @@ def get_time_trends(kill_data: List[Dict], player_name: str) -> Dict:
         trends["kills_by_day_of_week"][timestamp.weekday()] += 1
 
 =======
+=======
+>>>>>>> Stashed changes
         
         if not isinstance(timestamp, datetime):
             continue
@@ -819,11 +1002,15 @@ def get_time_trends(kill_data: List[Dict], player_name: str) -> Dict:
         # Group by day of week (0=Monday, 6=Sunday)
         trends["kills_by_day_of_week"][timestamp.weekday()] += 1
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     # Find best periods
     if trends["kills_by_day"]:
         best_day_key = max(trends["kills_by_day"].items(), key=lambda x: x[1])
         trends["best_day"] = {"date": best_day_key[0], "kills": best_day_key[1]}
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
     if trends["kills_by_week"]:
@@ -835,6 +1022,8 @@ def get_time_trends(kill_data: List[Dict], player_name: str) -> Dict:
         trends["best_month"] = {"period": best_month_key[0], "kills": best_month_key[1]}
 
 =======
+=======
+>>>>>>> Stashed changes
     
     if trends["kills_by_week"]:
         best_week_key = max(trends["kills_by_week"].items(), key=lambda x: x[1])
@@ -844,6 +1033,9 @@ def get_time_trends(kill_data: List[Dict], player_name: str) -> Dict:
         best_month_key = max(trends["kills_by_month"].items(), key=lambda x: x[1])
         trends["best_month"] = {"period": best_month_key[0], "kills": best_month_key[1]}
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     return trends
 
@@ -851,17 +1043,23 @@ def get_time_trends(kill_data: List[Dict], player_name: str) -> Dict:
 def get_streaks_history(kill_data: List[Dict], player_name: str) -> Dict:
     """Calculate streak statistics and history.
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     Args:
         kill_data: List of kill event dictionaries
         player_name: Player name for filtering
 
 =======
+=======
+>>>>>>> Stashed changes
     
     Args:
         kill_data: List of kill event dictionaries
         player_name: Player name for filtering
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     Returns:
         Dictionary with streak statistics
@@ -874,6 +1072,7 @@ def get_streaks_history(kill_data: List[Dict], player_name: str) -> Dict:
         "streak_history": [],
     }
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     if not kill_data:
         return streaks
@@ -882,6 +1081,8 @@ def get_streaks_history(kill_data: List[Dict], player_name: str) -> Dict:
     sorted_data = sorted(kill_data, key=lambda x: x.get("timestamp", datetime.min))
 
 =======
+=======
+>>>>>>> Stashed changes
     
     if not kill_data:
         return streaks
@@ -889,6 +1090,9 @@ def get_streaks_history(kill_data: List[Dict], player_name: str) -> Dict:
     # Sort by timestamp
     sorted_data = sorted(kill_data, key=lambda x: x.get("timestamp", datetime.min))
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     player_name_lower = player_name.lower()
     current_kill_streak = 0
@@ -896,20 +1100,27 @@ def get_streaks_history(kill_data: List[Dict], player_name: str) -> Dict:
     max_kill_streak = 0
     max_death_streak = 0
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     streak_start = None
     streak_type = None
 
 =======
+=======
+>>>>>>> Stashed changes
     
     streak_start = None
     streak_type = None
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     for event in sorted_data:
         killer = event.get("killer", "").lower()
         victim = event.get("victim", "").lower()
         timestamp = event.get("timestamp")
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
         # Skip unknown players
@@ -937,6 +1148,8 @@ def get_streaks_history(kill_data: List[Dict], player_name: str) -> Dict:
                 current_death_streak = 0
 
 =======
+=======
+>>>>>>> Stashed changes
         
         # Skip unknown players
         if killer == "unknown" or victim == "unknown":
@@ -960,12 +1173,16 @@ def get_streaks_history(kill_data: List[Dict], player_name: str) -> Dict:
                 })
                 current_death_streak = 0
             
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
             # Start new kill streak if needed
             if streak_type != "kill":
                 streak_start = timestamp
                 streak_type = "kill"
                 current_kill_streak = 0
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
             current_kill_streak += 1
@@ -985,6 +1202,8 @@ def get_streaks_history(kill_data: List[Dict], player_name: str) -> Dict:
                 current_kill_streak = 0
 
 =======
+=======
+>>>>>>> Stashed changes
             
             current_kill_streak += 1
             max_kill_streak = max(max_kill_streak, current_kill_streak)
@@ -1000,6 +1219,9 @@ def get_streaks_history(kill_data: List[Dict], player_name: str) -> Dict:
                 })
                 current_kill_streak = 0
             
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
             # Start new death streak if needed
             if streak_type != "death":
@@ -1007,20 +1229,27 @@ def get_streaks_history(kill_data: List[Dict], player_name: str) -> Dict:
                 streak_type = "death"
                 current_death_streak = 0
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
             current_death_streak += 1
             max_death_streak = max(max_death_streak, current_death_streak)
 
 =======
+=======
+>>>>>>> Stashed changes
             
             current_death_streak += 1
             max_death_streak = max(max_death_streak, current_death_streak)
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     streaks["max_kill_streak"] = max_kill_streak
     streaks["max_death_streak"] = max_death_streak
     streaks["current_kill_streak"] = current_kill_streak
     streaks["current_death_streak"] = current_death_streak
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
     # Calculate average kill streak from streak history
@@ -1032,10 +1261,16 @@ def get_streaks_history(kill_data: List[Dict], player_name: str) -> Dict:
     # Calculate average kill streak from streak history
     kill_streaks = [s["length"] for s in streaks["streak_history"] if s["type"] == "kill"]
 >>>>>>> Stashed changes
+=======
+    
+    # Calculate average kill streak from streak history
+    kill_streaks = [s["length"] for s in streaks["streak_history"] if s["type"] == "kill"]
+>>>>>>> Stashed changes
     if kill_streaks:
         streaks["average_kill_streak"] = sum(kill_streaks) / len(kill_streaks)
     else:
         streaks["average_kill_streak"] = 0.0
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
     # Sort streak history by length (descending) and limit to top 20
@@ -1043,11 +1278,16 @@ def get_streaks_history(kill_data: List[Dict], player_name: str) -> Dict:
     streaks["streak_history"] = streaks["streak_history"][:20]
 
 =======
+=======
+>>>>>>> Stashed changes
     
     # Sort streak history by length (descending) and limit to top 20
     streaks["streak_history"].sort(key=lambda x: x["length"], reverse=True)
     streaks["streak_history"] = streaks["streak_history"][:20]
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     return streaks
 
@@ -1055,22 +1295,29 @@ def get_streaks_history(kill_data: List[Dict], player_name: str) -> Dict:
 def detect_milestones(kill_data: List[Dict], player_name: str) -> List[Dict]:
     """Detect milestone achievements (kill count milestones).
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 
     Args:
         kill_data: List of kill event dictionaries
         player_name: Player name for filtering
 
 =======
+=======
+>>>>>>> Stashed changes
     
     Args:
         kill_data: List of kill event dictionaries
         player_name: Player name for filtering
         
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     Returns:
         List of milestone dictionaries with keys: milestone, timestamp, kill_count
     """
     milestones = []
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
     if not kill_data:
@@ -1088,6 +1335,8 @@ def detect_milestones(kill_data: List[Dict], player_name: str) -> List[Dict]:
     milestone_index = 0
 
 =======
+=======
+>>>>>>> Stashed changes
     
     if not kill_data:
         return milestones
@@ -1103,11 +1352,15 @@ def detect_milestones(kill_data: List[Dict], player_name: str) -> List[Dict]:
     kill_count = 0
     milestone_index = 0
     
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
     for event in sorted_data:
         killer = event.get("killer", "").lower()
         victim = event.get("victim", "").lower()
         timestamp = event.get("timestamp")
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
 
         # Skip unknown players
@@ -1140,6 +1393,8 @@ def detect_milestones(kill_data: List[Dict], player_name: str) -> List[Dict]:
 
     return milestones
 =======
+=======
+>>>>>>> Stashed changes
         
         # Skip unknown players
         if killer == "unknown" or victim == "unknown":
@@ -1169,4 +1424,7 @@ def detect_milestones(kill_data: List[Dict], player_name: str) -> List[Dict]:
     
     return milestones
 
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
