@@ -1,40 +1,56 @@
 # Auto-label PRs based on files changed
 python:
-  - '*.py'
-  - '**/*.py'
+  - changed-files:
+      - any-glob-to-any-file:
+          - '*.py'
+          - '**/*.py'
 
 tests:
-  - 'tests/**/*'
-  - '**/*test*.py'
-  - 'test_*.py'
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'tests/**/*'
+          - '**/*test*.py'
+          - 'test_*.py'
 
 documentation:
-  - '*.md'
-  - 'docs/**/*'
-  - 'README.md'
-  - 'LICENSE.md'
+  - changed-files:
+      - any-glob-to-any-file:
+          - '*.md'
+          - 'docs/**/*'
+          - 'README.md'
+          - 'LICENSE.md'
 
 ci-cd:
-  - '.github/workflows/**/*'
-  - '.github/dependabot.yml'
-  - 'build.ps1'
-  - '*.spec'
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/**/*'
+          - '.github/dependabot.yml'
+          - 'build.ps1'
+          - '*.spec'
 
 config:
-  - '*.cfg'
-  - '*.toml'
-  - '*.ini'
-  - '*.json'
-  - 'requirements*.txt'
+  - changed-files:
+      - any-glob-to-any-file:
+          - '*.cfg'
+          - '*.toml'
+          - '*.ini'
+          - '*.json'
+          - 'requirements*.txt'
 
 ui:
-  - 'sc_kill_feed_gui.py'
-  - 'lib/ui_helpers.py'
-  - 'lib/overlay_helpers.py'
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'sc_kill_feed_gui.py'
+          - 'lib/ui_helpers.py'
+          - 'lib/overlay_helpers.py'
 
 lib:
-  - 'lib/**/*.py'
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/**/*.py'
 
 assets:
-  - 'assets/**/*'
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'assets/**/*'
 
