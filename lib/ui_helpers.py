@@ -247,7 +247,10 @@ def setup_styles():
             )
             style.map(
                 "TRadiobutton",
-                background=[("active", THEME_BG_SECONDARY), ("selected", THEME_BG_SECONDARY)],
+                background=[
+                    ("active", THEME_BG_SECONDARY),
+                    ("selected", THEME_BG_SECONDARY),
+                ],
                 foreground=[("active", THEME_TEXT_PRIMARY)],
             )
         except Exception:
@@ -767,7 +770,7 @@ def create_settings_tab(gui):
             settings_frame, text="🎯 Kill Tracker Overlay", style="TLabelframe"
         )
         overlay_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
-        
+
         # Create scrollable container for overlay settings
         overlay_canvas = tk.Canvas(
             overlay_frame,
@@ -778,46 +781,44 @@ def create_settings_tab(gui):
             overlay_frame,
             orient="vertical",
             command=overlay_canvas.yview,
-            style="TScrollbar"
+            style="TScrollbar",
         )
         overlay_scrollable_frame = ttk.Frame(overlay_canvas)
-        
+
         # Configure scrolling
         def update_scroll_region(event=None):
             overlay_canvas.configure(scrollregion=overlay_canvas.bbox("all"))
-        
+
         overlay_scrollable_frame.bind("<Configure>", update_scroll_region)
-        
+
         # Create window in canvas for the scrollable frame
         canvas_frame = overlay_canvas.create_window(
-            (0, 0),
-            window=overlay_scrollable_frame,
-            anchor="nw"
+            (0, 0), window=overlay_scrollable_frame, anchor="nw"
         )
-        
+
         # Bind canvas resize to update scroll region and frame width
         def on_canvas_configure(event):
             canvas_width = event.width
             overlay_canvas.itemconfig(canvas_frame, width=canvas_width)
             update_scroll_region()
-        
+
         overlay_canvas.bind("<Configure>", on_canvas_configure)
-        
+
         # Pack canvas and scrollbar
         overlay_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         overlay_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         overlay_canvas.configure(yscrollcommand=overlay_scrollbar.set)
-        
+
         # Mouse wheel scrolling (Windows)
         def on_mousewheel(event):
             overlay_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-        
+
         # Bind mouse wheel to canvas
         overlay_canvas.bind("<MouseWheel>", on_mousewheel)
-        
+
         # Use overlay_scrollable_frame instead of overlay_frame for content
         content_frame = overlay_scrollable_frame
-        
+
         try:
             # Ensure overlay section exists in config
             if "overlay" not in gui.config:
@@ -846,6 +847,7 @@ def create_settings_tab(gui):
                 except Exception as e:
                     logger.debug("Error toggling overlay", exc_info=True)
                     import tkinter.messagebox as msgbox
+
                     try:
                         msgbox.showerror("Error", f"Failed to toggle overlay: {e}")
                     except Exception:
@@ -874,7 +876,9 @@ def create_settings_tab(gui):
 
             # Get current lock state from config
             try:
-                overlay_locked = gui.config["overlay"].get("locked", "false").lower() == "true"
+                overlay_locked = (
+                    gui.config["overlay"].get("locked", "false").lower() == "true"
+                )
             except Exception:
                 overlay_locked = False
 
@@ -887,8 +891,11 @@ def create_settings_tab(gui):
                         new_locked = gui.overlay_locked_var.get()
                         gui.overlay.set_locked(new_locked)
                         gui.config.setdefault("overlay", {})
-                        gui.config["overlay"]["locked"] = "true" if new_locked else "false"
+                        gui.config["overlay"]["locked"] = (
+                            "true" if new_locked else "false"
+                        )
                         from lib.config_helpers import save_config
+
                         save_config(gui.config, gui.config_path)
                 except Exception as e:
                     logger.debug("Error toggling overlay lock", exc_info=True)
@@ -900,7 +907,7 @@ def create_settings_tab(gui):
                 command=on_lock_toggle,
             )
             lock_check.pack(side=tk.LEFT)
-            
+
             # Apply initial lock state if overlay already exists
             try:
                 if hasattr(gui, "overlay") and gui.overlay:
@@ -957,7 +964,9 @@ def create_settings_tab(gui):
                         variable=gui.overlay_theme_var,
                         value=theme_name,
                         command=lambda t=theme_name: gui.change_overlay_theme(t),
-                        style="OverlayTheme.TRadiobutton" if overlay_radio_style else None,
+                        style=(
+                            "OverlayTheme.TRadiobutton" if overlay_radio_style else None
+                        ),
                     )
                     theme_btn.pack(side=tk.LEFT, padx=(0, 10))
             except Exception as e:
@@ -1042,25 +1051,32 @@ def create_settings_tab(gui):
                 fg=THEME_TEXT_PRIMARY,
                 font=(FONT_FAMILY, 10, "bold"),
             ).pack(anchor="w", pady=(5, 5))
-            
+
             # Import overlay helpers to get available stats
             try:
                 from lib.overlay_helpers import KillTrackerOverlay
-                
+
                 # Stats checkboxes frame
                 stats_checkbox_frame = tk.Frame(content_frame, bg=THEME_BG_SECONDARY)
                 stats_checkbox_frame.pack(fill=tk.X, padx=15, pady=(0, 5))
-                
+
                 # Create checkboxes for each available stat
                 gui.overlay_stats_vars = {}
-                
+
                 # Get default enabled stats from config
                 try:
-                    overlay_stats_config = gui.config["overlay"].get("enabled_stats", "")
+                    overlay_stats_config = gui.config["overlay"].get(
+                        "enabled_stats", ""
+                    )
                     # Parse comma-separated list of enabled stats
                     if overlay_stats_config:
-                        enabled_stats_list = [s.strip() for s in overlay_stats_config.split(",")]
-                        default_enabled = {stat: stat in enabled_stats_list for stat in KillTrackerOverlay.AVAILABLE_STATS.keys()}
+                        enabled_stats_list = [
+                            s.strip() for s in overlay_stats_config.split(",")
+                        ]
+                        default_enabled = {
+                            stat: stat in enabled_stats_list
+                            for stat in KillTrackerOverlay.AVAILABLE_STATS.keys()
+                        }
                     else:
                         # Default: kills, deaths, kd, streak
                         default_enabled = {
@@ -1080,19 +1096,20 @@ def create_settings_tab(gui):
                         "max_kill_streak": False,
                         "max_death_streak": False,
                     }
-                
+
                 # Create checkboxes in two columns
                 left_column = tk.Frame(stats_checkbox_frame, bg=THEME_BG_SECONDARY)
                 left_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
-                
+
                 right_column = tk.Frame(stats_checkbox_frame, bg=THEME_BG_SECONDARY)
                 right_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-                
+
                 stat_items = list(KillTrackerOverlay.AVAILABLE_STATS.items())
                 mid_point = len(stat_items) // 2 + len(stat_items) % 2
-                
+
                 def create_stat_update_handler():
                     """Create a handler that updates overlay stats when any checkbox changes."""
+
                     def on_stat_toggle(*args):
                         try:
                             if hasattr(gui, "overlay") and gui.overlay:
@@ -1102,36 +1119,43 @@ def create_settings_tab(gui):
                                     for key, var in gui.overlay_stats_vars.items()
                                 }
                                 gui.overlay.set_enabled_stats(enabled_stats)
-                                
+
                                 # Save to config
-                                enabled_list = [k for k, v in enabled_stats.items() if v]
+                                enabled_list = [
+                                    k for k, v in enabled_stats.items() if v
+                                ]
                                 gui.config.setdefault("overlay", {})
-                                gui.config["overlay"]["enabled_stats"] = ",".join(enabled_list)
+                                gui.config["overlay"]["enabled_stats"] = ",".join(
+                                    enabled_list
+                                )
                                 save_config(gui.config, gui.config_path)
                         except Exception as e:
-                            logger.debug(f"Error updating overlay stats: {e}", exc_info=True)
+                            logger.debug(
+                                f"Error updating overlay stats: {e}", exc_info=True
+                            )
+
                     return on_stat_toggle
-                
+
                 # Single handler for all checkboxes
                 stat_update_handler = create_stat_update_handler()
-                
+
                 for idx, (stat_name, stat_config) in enumerate(stat_items):
                     var = tk.BooleanVar(value=default_enabled.get(stat_name, False))
                     gui.overlay_stats_vars[stat_name] = var
-                    
+
                     # Trace changes to the variable
                     var.trace("w", stat_update_handler)
-                    
+
                     # Determine which column
                     column_frame = left_column if idx < mid_point else right_column
-                    
+
                     checkbox = ttk.Checkbutton(
                         column_frame,
                         text=stat_config["label"],
                         variable=var,
                     )
                     checkbox.pack(anchor="w", pady=2)
-                    
+
             except Exception as e:
                 logger.debug(f"Error creating stat configuration: {e}", exc_info=True)
 
@@ -1212,14 +1236,14 @@ def create_lifetime_stats_tab(gui):
     try:
         lifetime_frame = ttk.Frame(gui.notebook)
         gui.notebook.add(lifetime_frame, text=TAB_LIFETIME_STATS)
-        
+
         # Control buttons frame at top
         control_frame = ttk.Frame(lifetime_frame, style=STYLE_CARD_FRAME)
         control_frame.pack(fill=tk.X, padx=15, pady=15)
-        
+
         buttons_frame = ttk.Frame(control_frame)
         buttons_frame.pack(padx=15, pady=15)
-        
+
         # Refresh button (bypasses cache)
         refresh_btn = ttk.Button(
             buttons_frame,
@@ -1228,7 +1252,7 @@ def create_lifetime_stats_tab(gui):
             style="TButton",
         )
         refresh_btn.pack(side=tk.LEFT, padx=5)
-        
+
         # Status label
         gui.lifetime_status_label = tk.Label(
             control_frame,
@@ -1239,15 +1263,15 @@ def create_lifetime_stats_tab(gui):
             pady=5,
         )
         gui.lifetime_status_label.pack(padx=15, pady=(0, 5))
-        
+
         # Progress bar (hidden by default)
         gui.lifetime_progress_bar = ttk.Progressbar(
             control_frame,
-            mode='indeterminate',
+            mode="indeterminate",
             length=300,
         )
         # Don't pack initially - will be shown during loading
-        
+
         # Create scrollable canvas for the content
         canvas = tk.Canvas(
             lifetime_frame,
@@ -1260,39 +1284,42 @@ def create_lifetime_stats_tab(gui):
             command=canvas.yview,
         )
         scrollable_frame = ttk.Frame(canvas)
-        
+
         def update_scroll_region(event=None):
             canvas.configure(scrollregion=canvas.bbox("all"))
-        
+
         scrollable_frame.bind("<Configure>", update_scroll_region)
-        
+
         def on_canvas_configure(event):
             canvas_width = event.width
             canvas.itemconfig(canvas_frame, width=canvas_width)
             update_scroll_region()
-        
-        canvas_frame = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+        canvas_frame = canvas.create_window(
+            (0, 0), window=scrollable_frame, anchor="nw"
+        )
         canvas.bind("<Configure>", on_canvas_configure)
         canvas.configure(yscrollcommand=scrollbar.set)
-        
+
         # Pack canvas and scrollbar
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
+
         # Bind mouse wheel to canvas
         def on_mousewheel(event):
             canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
         canvas.bind("<MouseWheel>", on_mousewheel)
-        
+
         # Core metrics section
         metrics_frame = ttk.LabelFrame(
             scrollable_frame, text=LABEL_LIFETIME_METRICS, style="TLabelframe"
         )
         metrics_frame.pack(fill=tk.X, padx=15, pady=15)
-        
+
         metrics_grid = ttk.Frame(metrics_frame)
         metrics_grid.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
-        
+
         # Create metric labels (will be updated when data loads)
         gui.lifetime_kills_label = tk.Label(
             metrics_grid,
@@ -1304,7 +1331,7 @@ def create_lifetime_stats_tab(gui):
             pady=10,
         )
         gui.lifetime_kills_label.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
-        
+
         gui.lifetime_deaths_label = tk.Label(
             metrics_grid,
             text="Lifetime Deaths: --",
@@ -1315,7 +1342,7 @@ def create_lifetime_stats_tab(gui):
             pady=10,
         )
         gui.lifetime_deaths_label.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
-        
+
         gui.lifetime_kd_label = tk.Label(
             metrics_grid,
             text="Lifetime K/D: --",
@@ -1326,7 +1353,7 @@ def create_lifetime_stats_tab(gui):
             pady=10,
         )
         gui.lifetime_kd_label.grid(row=0, column=2, padx=10, pady=5, sticky="ew")
-        
+
         gui.lifetime_sessions_label = tk.Label(
             metrics_grid,
             text="Total Sessions: --",
@@ -1337,7 +1364,7 @@ def create_lifetime_stats_tab(gui):
             pady=10,
         )
         gui.lifetime_sessions_label.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
-        
+
         gui.lifetime_first_kill_label = tk.Label(
             metrics_grid,
             text="First Kill: --",
@@ -1347,8 +1374,10 @@ def create_lifetime_stats_tab(gui):
             padx=20,
             pady=10,
         )
-        gui.lifetime_first_kill_label.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
-        
+        gui.lifetime_first_kill_label.grid(
+            row=1, column=1, padx=10, pady=5, sticky="ew"
+        )
+
         gui.lifetime_last_kill_label = tk.Label(
             metrics_grid,
             text="Last Kill: --",
@@ -1359,7 +1388,7 @@ def create_lifetime_stats_tab(gui):
             pady=10,
         )
         gui.lifetime_last_kill_label.grid(row=1, column=2, padx=10, pady=5, sticky="ew")
-        
+
         gui.lifetime_play_time_label = tk.Label(
             metrics_grid,
             text="Total Play Time: --",
@@ -1370,7 +1399,7 @@ def create_lifetime_stats_tab(gui):
             pady=10,
         )
         gui.lifetime_play_time_label.grid(row=2, column=0, padx=10, pady=5, sticky="ew")
-        
+
         gui.lifetime_suicide_count_label = tk.Label(
             metrics_grid,
             text="Suicides: --",
@@ -1380,21 +1409,23 @@ def create_lifetime_stats_tab(gui):
             padx=20,
             pady=10,
         )
-        gui.lifetime_suicide_count_label.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
-        
+        gui.lifetime_suicide_count_label.grid(
+            row=2, column=1, padx=10, pady=5, sticky="ew"
+        )
+
         metrics_grid.columnconfigure(0, weight=1)
         metrics_grid.columnconfigure(1, weight=1)
         metrics_grid.columnconfigure(2, weight=1)
-        
+
         # Weapon statistics section
         weapons_frame = ttk.LabelFrame(
             scrollable_frame, text=LABEL_LIFETIME_WEAPONS, style="TLabelframe"
         )
         weapons_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
-        
+
         weapons_info_frame = ttk.Frame(weapons_frame)
         weapons_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
-        
+
         gui.lifetime_most_used_label = tk.Label(
             weapons_info_frame,
             text="Most Used: --",
@@ -1404,7 +1435,7 @@ def create_lifetime_stats_tab(gui):
             padx=10,
         )
         gui.lifetime_most_used_label.pack(side=tk.LEFT, padx=10)
-        
+
         gui.lifetime_most_effective_label = tk.Label(
             weapons_info_frame,
             text="Most Effective: --",
@@ -1414,7 +1445,7 @@ def create_lifetime_stats_tab(gui):
             padx=10,
         )
         gui.lifetime_most_effective_label.pack(side=tk.LEFT, padx=10)
-        
+
         # Weapon mastery table
         gui.lifetime_weapons_tree = ttk.Treeview(
             weapons_frame,
@@ -1422,13 +1453,53 @@ def create_lifetime_stats_tab(gui):
             show="tree headings",
             height=10,
         )
-        gui.lifetime_weapons_tree.heading("#0", text="Weapon", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "#0", False))
-        gui.lifetime_weapons_tree.heading("kills", text="Kills", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "kills", False, numeric=True))
-        gui.lifetime_weapons_tree.heading("deaths", text="Deaths", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "deaths", False, numeric=True))
-        gui.lifetime_weapons_tree.heading("kd", text="K/D", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "kd", False, numeric=True))
-        gui.lifetime_weapons_tree.heading("usage_pct", text="Usage %", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "usage_pct", False, numeric=True))
-        gui.lifetime_weapons_tree.heading("first_use", text="First Use", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "first_use", False))
-        gui.lifetime_weapons_tree.heading("last_use", text="Last Use", command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "last_use", False))
+        gui.lifetime_weapons_tree.heading(
+            "#0",
+            text="Weapon",
+            command=lambda: _sort_treeview(gui.lifetime_weapons_tree, "#0", False),
+        )
+        gui.lifetime_weapons_tree.heading(
+            "kills",
+            text="Kills",
+            command=lambda: _sort_treeview(
+                gui.lifetime_weapons_tree, "kills", False, numeric=True
+            ),
+        )
+        gui.lifetime_weapons_tree.heading(
+            "deaths",
+            text="Deaths",
+            command=lambda: _sort_treeview(
+                gui.lifetime_weapons_tree, "deaths", False, numeric=True
+            ),
+        )
+        gui.lifetime_weapons_tree.heading(
+            "kd",
+            text="K/D",
+            command=lambda: _sort_treeview(
+                gui.lifetime_weapons_tree, "kd", False, numeric=True
+            ),
+        )
+        gui.lifetime_weapons_tree.heading(
+            "usage_pct",
+            text="Usage %",
+            command=lambda: _sort_treeview(
+                gui.lifetime_weapons_tree, "usage_pct", False, numeric=True
+            ),
+        )
+        gui.lifetime_weapons_tree.heading(
+            "first_use",
+            text="First Use",
+            command=lambda: _sort_treeview(
+                gui.lifetime_weapons_tree, "first_use", False
+            ),
+        )
+        gui.lifetime_weapons_tree.heading(
+            "last_use",
+            text="Last Use",
+            command=lambda: _sort_treeview(
+                gui.lifetime_weapons_tree, "last_use", False
+            ),
+        )
         gui.lifetime_weapons_tree.column("#0", width=200)
         gui.lifetime_weapons_tree.column("kills", width=80)
         gui.lifetime_weapons_tree.column("deaths", width=80)
@@ -1437,16 +1508,16 @@ def create_lifetime_stats_tab(gui):
         gui.lifetime_weapons_tree.column("first_use", width=150)
         gui.lifetime_weapons_tree.column("last_use", width=150)
         gui.lifetime_weapons_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
-        
+
         # PvP statistics section
         pvp_frame = ttk.LabelFrame(
             scrollable_frame, text=LABEL_LIFETIME_PVP, style="TLabelframe"
         )
         pvp_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
-        
+
         pvp_info_frame = ttk.Frame(pvp_frame)
         pvp_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
-        
+
         gui.lifetime_most_killed_label = tk.Label(
             pvp_info_frame,
             text="Most Killed: --",
@@ -1456,7 +1527,7 @@ def create_lifetime_stats_tab(gui):
             padx=10,
         )
         gui.lifetime_most_killed_label.pack(side=tk.LEFT, padx=10)
-        
+
         gui.lifetime_nemesis_label = tk.Label(
             pvp_info_frame,
             text="Nemesis: --",
@@ -1466,7 +1537,7 @@ def create_lifetime_stats_tab(gui):
             padx=10,
         )
         gui.lifetime_nemesis_label.pack(side=tk.LEFT, padx=10)
-        
+
         # Rivals table
         gui.lifetime_rivals_tree = ttk.Treeview(
             pvp_frame,
@@ -1474,27 +1545,55 @@ def create_lifetime_stats_tab(gui):
             show="tree headings",
             height=8,
         )
-        gui.lifetime_rivals_tree.heading("#0", text="Player", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "#0", False))
-        gui.lifetime_rivals_tree.heading("killed_them", text="Killed", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "killed_them", False, numeric=True))
-        gui.lifetime_rivals_tree.heading("killed_by_them", text="Killed By", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "killed_by_them", False, numeric=True))
-        gui.lifetime_rivals_tree.heading("h2h_kd", text="H2H K/D", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "h2h_kd", False, numeric=True))
-        gui.lifetime_rivals_tree.heading("last_encounter", text="Last Encounter", command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "last_encounter", False))
+        gui.lifetime_rivals_tree.heading(
+            "#0",
+            text="Player",
+            command=lambda: _sort_treeview(gui.lifetime_rivals_tree, "#0", False),
+        )
+        gui.lifetime_rivals_tree.heading(
+            "killed_them",
+            text="Killed",
+            command=lambda: _sort_treeview(
+                gui.lifetime_rivals_tree, "killed_them", False, numeric=True
+            ),
+        )
+        gui.lifetime_rivals_tree.heading(
+            "killed_by_them",
+            text="Killed By",
+            command=lambda: _sort_treeview(
+                gui.lifetime_rivals_tree, "killed_by_them", False, numeric=True
+            ),
+        )
+        gui.lifetime_rivals_tree.heading(
+            "h2h_kd",
+            text="H2H K/D",
+            command=lambda: _sort_treeview(
+                gui.lifetime_rivals_tree, "h2h_kd", False, numeric=True
+            ),
+        )
+        gui.lifetime_rivals_tree.heading(
+            "last_encounter",
+            text="Last Encounter",
+            command=lambda: _sort_treeview(
+                gui.lifetime_rivals_tree, "last_encounter", False
+            ),
+        )
         gui.lifetime_rivals_tree.column("#0", width=200)
         gui.lifetime_rivals_tree.column("killed_them", width=100)
         gui.lifetime_rivals_tree.column("killed_by_them", width=100)
         gui.lifetime_rivals_tree.column("h2h_kd", width=100)
         gui.lifetime_rivals_tree.column("last_encounter", width=150)
         gui.lifetime_rivals_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
-        
+
         # Streaks section
         streaks_frame = ttk.LabelFrame(
             scrollable_frame, text=LABEL_LIFETIME_STREAKS, style="TLabelframe"
         )
         streaks_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
-        
+
         streaks_info_frame = ttk.Frame(streaks_frame)
         streaks_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
-        
+
         gui.lifetime_max_kill_streak_label = tk.Label(
             streaks_info_frame,
             text="Max Kill Streak: --",
@@ -1504,7 +1603,7 @@ def create_lifetime_stats_tab(gui):
             padx=10,
         )
         gui.lifetime_max_kill_streak_label.pack(side=tk.LEFT, padx=10)
-        
+
         gui.lifetime_max_death_streak_label = tk.Label(
             streaks_info_frame,
             text="Max Death Streak: --",
@@ -1514,7 +1613,7 @@ def create_lifetime_stats_tab(gui):
             padx=10,
         )
         gui.lifetime_max_death_streak_label.pack(side=tk.LEFT, padx=10)
-        
+
         gui.lifetime_avg_kill_streak_label = tk.Label(
             streaks_info_frame,
             text="Avg Kill Streak: --",
@@ -1524,7 +1623,7 @@ def create_lifetime_stats_tab(gui):
             padx=10,
         )
         gui.lifetime_avg_kill_streak_label.pack(side=tk.LEFT, padx=10)
-        
+
         # Streak history table
         gui.lifetime_streaks_tree = ttk.Treeview(
             streaks_frame,
@@ -1533,26 +1632,44 @@ def create_lifetime_stats_tab(gui):
             height=8,
         )
         gui.lifetime_streaks_tree.heading("#0", text="Rank")
-        gui.lifetime_streaks_tree.heading("type", text="Type", command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "type", False))
-        gui.lifetime_streaks_tree.heading("length", text="Length", command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "length", False, numeric=True))
-        gui.lifetime_streaks_tree.heading("start", text="Start Date", command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "start", False))
-        gui.lifetime_streaks_tree.heading("end", text="End Date", command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "end", False))
+        gui.lifetime_streaks_tree.heading(
+            "type",
+            text="Type",
+            command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "type", False),
+        )
+        gui.lifetime_streaks_tree.heading(
+            "length",
+            text="Length",
+            command=lambda: _sort_treeview(
+                gui.lifetime_streaks_tree, "length", False, numeric=True
+            ),
+        )
+        gui.lifetime_streaks_tree.heading(
+            "start",
+            text="Start Date",
+            command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "start", False),
+        )
+        gui.lifetime_streaks_tree.heading(
+            "end",
+            text="End Date",
+            command=lambda: _sort_treeview(gui.lifetime_streaks_tree, "end", False),
+        )
         gui.lifetime_streaks_tree.column("#0", width=60)
         gui.lifetime_streaks_tree.column("type", width=100)
         gui.lifetime_streaks_tree.column("length", width=80)
         gui.lifetime_streaks_tree.column("start", width=150)
         gui.lifetime_streaks_tree.column("end", width=150)
         gui.lifetime_streaks_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
-        
+
         # Performance Trends section
         trends_frame = ttk.LabelFrame(
             scrollable_frame, text=LABEL_LIFETIME_TRENDS, style="TLabelframe"
         )
         trends_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
-        
+
         trends_info_frame = ttk.Frame(trends_frame)
         trends_info_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
-        
+
         gui.lifetime_best_day_label = tk.Label(
             trends_info_frame,
             text="Best Day: --",
@@ -1562,7 +1679,7 @@ def create_lifetime_stats_tab(gui):
             padx=10,
         )
         gui.lifetime_best_day_label.pack(side=tk.LEFT, padx=10)
-        
+
         gui.lifetime_best_week_label = tk.Label(
             trends_info_frame,
             text="Best Week: --",
@@ -1572,7 +1689,7 @@ def create_lifetime_stats_tab(gui):
             padx=10,
         )
         gui.lifetime_best_week_label.pack(side=tk.LEFT, padx=10)
-        
+
         gui.lifetime_best_month_label = tk.Label(
             trends_info_frame,
             text="Best Month: --",
@@ -1582,10 +1699,10 @@ def create_lifetime_stats_tab(gui):
             padx=10,
         )
         gui.lifetime_best_month_label.pack(side=tk.LEFT, padx=10)
-        
+
         trends_details_frame = ttk.Frame(trends_frame)
         trends_details_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
-        
+
         gui.lifetime_most_active_day_label = tk.Label(
             trends_details_frame,
             text="Most Active Day: --",
@@ -1595,7 +1712,7 @@ def create_lifetime_stats_tab(gui):
             padx=10,
         )
         gui.lifetime_most_active_day_label.pack(side=tk.LEFT, padx=10)
-        
+
         gui.lifetime_most_active_hour_label = tk.Label(
             trends_details_frame,
             text="Most Active Hour: --",
@@ -1605,16 +1722,16 @@ def create_lifetime_stats_tab(gui):
             padx=10,
         )
         gui.lifetime_most_active_hour_label.pack(side=tk.LEFT, padx=10)
-        
+
         # Advanced Metrics section
         advanced_frame = ttk.LabelFrame(
             scrollable_frame, text="📊 Advanced Metrics", style="TLabelframe"
         )
         advanced_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
-        
+
         advanced_grid = ttk.Frame(advanced_frame)
         advanced_grid.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
-        
+
         gui.lifetime_kills_per_session_label = tk.Label(
             advanced_grid,
             text="Avg Kills/Session: --",
@@ -1624,8 +1741,10 @@ def create_lifetime_stats_tab(gui):
             padx=20,
             pady=10,
         )
-        gui.lifetime_kills_per_session_label.grid(row=0, column=0, padx=10, pady=5, sticky="ew")
-        
+        gui.lifetime_kills_per_session_label.grid(
+            row=0, column=0, padx=10, pady=5, sticky="ew"
+        )
+
         gui.lifetime_survival_rate_label = tk.Label(
             advanced_grid,
             text="Survival Rate: --",
@@ -1635,17 +1754,19 @@ def create_lifetime_stats_tab(gui):
             padx=20,
             pady=10,
         )
-        gui.lifetime_survival_rate_label.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
-        
+        gui.lifetime_survival_rate_label.grid(
+            row=0, column=1, padx=10, pady=5, sticky="ew"
+        )
+
         advanced_grid.columnconfigure(0, weight=1)
         advanced_grid.columnconfigure(1, weight=1)
-        
+
         # Timeline & Milestones section
         milestones_frame = ttk.LabelFrame(
             scrollable_frame, text="📅 Milestones & Achievements", style="TLabelframe"
         )
         milestones_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
-        
+
         # Milestones table
         gui.lifetime_milestones_tree = ttk.Treeview(
             milestones_frame,
@@ -1654,19 +1775,33 @@ def create_lifetime_stats_tab(gui):
             height=8,
         )
         gui.lifetime_milestones_tree.heading("#0", text="#")
-        gui.lifetime_milestones_tree.heading("milestone", text="Milestone", command=lambda: _sort_treeview(gui.lifetime_milestones_tree, "milestone", False))
-        gui.lifetime_milestones_tree.heading("date", text="Date Achieved", command=lambda: _sort_treeview(gui.lifetime_milestones_tree, "date", False))
+        gui.lifetime_milestones_tree.heading(
+            "milestone",
+            text="Milestone",
+            command=lambda: _sort_treeview(
+                gui.lifetime_milestones_tree, "milestone", False
+            ),
+        )
+        gui.lifetime_milestones_tree.heading(
+            "date",
+            text="Date Achieved",
+            command=lambda: _sort_treeview(gui.lifetime_milestones_tree, "date", False),
+        )
         gui.lifetime_milestones_tree.column("#0", width=60)
         gui.lifetime_milestones_tree.column("milestone", width=200)
         gui.lifetime_milestones_tree.column("date", width=200)
-        gui.lifetime_milestones_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(15, 15))
-        
+        gui.lifetime_milestones_tree.pack(
+            fill=tk.BOTH, expand=True, padx=15, pady=(15, 15)
+        )
+
         # Recent History section
         recent_history_frame = ttk.LabelFrame(
-            scrollable_frame, text="📋 Recent History (Last 50 Events)", style="TLabelframe"
+            scrollable_frame,
+            text="📋 Recent History (Last 50 Events)",
+            style="TLabelframe",
         )
         recent_history_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
-        
+
         # Recent history table
         gui.lifetime_recent_history_tree = ttk.Treeview(
             recent_history_frame,
@@ -1675,19 +1810,51 @@ def create_lifetime_stats_tab(gui):
             height=12,
         )
         gui.lifetime_recent_history_tree.heading("#0", text="#")
-        gui.lifetime_recent_history_tree.heading("timestamp", text="Date/Time", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "timestamp", False))
-        gui.lifetime_recent_history_tree.heading("killer", text="Killer", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "killer", False))
-        gui.lifetime_recent_history_tree.heading("victim", text="Victim", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "victim", False))
-        gui.lifetime_recent_history_tree.heading("weapon", text="Weapon", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "weapon", False))
-        gui.lifetime_recent_history_tree.heading("event", text="Event", command=lambda: _sort_treeview(gui.lifetime_recent_history_tree, "event", False))
+        gui.lifetime_recent_history_tree.heading(
+            "timestamp",
+            text="Date/Time",
+            command=lambda: _sort_treeview(
+                gui.lifetime_recent_history_tree, "timestamp", False
+            ),
+        )
+        gui.lifetime_recent_history_tree.heading(
+            "killer",
+            text="Killer",
+            command=lambda: _sort_treeview(
+                gui.lifetime_recent_history_tree, "killer", False
+            ),
+        )
+        gui.lifetime_recent_history_tree.heading(
+            "victim",
+            text="Victim",
+            command=lambda: _sort_treeview(
+                gui.lifetime_recent_history_tree, "victim", False
+            ),
+        )
+        gui.lifetime_recent_history_tree.heading(
+            "weapon",
+            text="Weapon",
+            command=lambda: _sort_treeview(
+                gui.lifetime_recent_history_tree, "weapon", False
+            ),
+        )
+        gui.lifetime_recent_history_tree.heading(
+            "event",
+            text="Event",
+            command=lambda: _sort_treeview(
+                gui.lifetime_recent_history_tree, "event", False
+            ),
+        )
         gui.lifetime_recent_history_tree.column("#0", width=50)
         gui.lifetime_recent_history_tree.column("timestamp", width=150)
         gui.lifetime_recent_history_tree.column("killer", width=150)
         gui.lifetime_recent_history_tree.column("victim", width=150)
         gui.lifetime_recent_history_tree.column("weapon", width=150)
         gui.lifetime_recent_history_tree.column("event", width=300)
-        gui.lifetime_recent_history_tree.pack(fill=tk.BOTH, expand=True, padx=15, pady=(15, 15))
-        
+        gui.lifetime_recent_history_tree.pack(
+            fill=tk.BOTH, expand=True, padx=15, pady=(15, 15)
+        )
+
         # Add export button
         export_btn = ttk.Button(
             buttons_frame,
@@ -1696,7 +1863,7 @@ def create_lifetime_stats_tab(gui):
             style="Success.TButton",
         )
         export_btn.pack(side=tk.LEFT, padx=5)
-        
+
     except Exception:
         logger.debug("create_lifetime_stats_tab failed", exc_info=True)
 
@@ -1704,25 +1871,28 @@ def create_lifetime_stats_tab(gui):
 def _sort_treeview(tree, col, reverse, numeric=False):
     """Sort treeview column when clicked."""
     try:
-        l = [(tree.set(k, col), k) for k in tree.get_children('')]
+        l = [(tree.set(k, col), k) for k in tree.get_children("")]
         if numeric:
             # Try to convert to numbers for proper numeric sorting
             def try_float(x):
                 try:
                     # Remove % and other non-numeric chars
-                    val = x[0].replace('%', '').strip()
+                    val = x[0].replace("%", "").strip()
                     return float(val)
                 except (ValueError, IndexError):
                     return 0.0
+
             l.sort(key=lambda x: try_float(x), reverse=reverse)
         else:
             l.sort(reverse=reverse)
-        
+
         # Rearrange items in sorted positions
         for index, (val, k) in enumerate(l):
-            tree.move(k, '', index)
-        
+            tree.move(k, "", index)
+
         # Reverse sort next time
-        tree.heading(col, command=lambda: _sort_treeview(tree, col, not reverse, numeric))
+        tree.heading(
+            col, command=lambda: _sort_treeview(tree, col, not reverse, numeric)
+        )
     except Exception:
         logger.debug("Error sorting treeview", exc_info=True)
