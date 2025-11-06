@@ -26,6 +26,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 from lib.io_helpers import resolve_auto_log_path, append_kill_to_csv
+from lib.lifetime_stats import (
+    load_lifetime_data,
+    calculate_lifetime_stats,
+    get_weapon_stats,
+    get_pvp_stats,
+    get_time_trends,
+    get_streaks_history,
+    detect_milestones,
+)
 from lib.win32_helpers import (
     set_app_icon,
     apply_native_win32_borderless,
@@ -41,6 +50,7 @@ from lib.ui_helpers import (
     reset_scale,
     create_kill_feed_tab,
     create_statistics_tab,
+    create_lifetime_stats_tab,
     create_settings_tab,
     create_export_tab,
 )
@@ -67,6 +77,8 @@ from constants import (
     THEME_TEXT_PRIMARY,
     THEME_TEXT_SECONDARY,
     THEME_ACCENT_DANGER,
+    THEME_ACCENT_SUCCESS,
+    THEME_ACCENT_WARNING,
     ASSETS_DIR,
     ICON_FILENAME,
     DEFAULT_CSV_NAME,
@@ -100,6 +112,7 @@ from constants import (
     STATUS_MONITORING,
     STATUS_AUTO_STARTED,
     TIMER_CAPTION,
+    TAB_LIFETIME_STATS,
 )
 
 
@@ -200,6 +213,11 @@ class StarCitizenKillFeedGUI:
 
         self.kills_data = deque(maxlen=DEFAULT_KILLS_DEQUE_MAXLEN)
         self.data_lock = threading.RLock()
+        
+        # Lifetime stats caching
+        self._lifetime_stats_cache = None
+        self._lifetime_stats_cache_time = None
+        self._lifetime_stats_cache_path = None
 
         self.MAX_STATISTICS_ENTRIES = DEFAULT_MAX_STATISTICS_ENTRIES
         self.player_name = self.config["user"].get("ingame_name", "")
@@ -360,6 +378,40 @@ class StarCitizenKillFeedGUI:
     def _on_close(self):
         """Handler for window close to persist configuration before exit."""
         try:
+            # Cancel any pending timer jobs to prevent callbacks after window destruction
+            try:
+                if hasattr(self, "_timer_job") and self._timer_job is not None:
+                    try:
+                        if hasattr(self.root, "after_cancel"):
+                            self.root.after_cancel(self._timer_job)
+                    except Exception:
+                        pass
+                    self._timer_job = None
+            except Exception:
+                pass
+            
+            try:
+                if hasattr(self, "_overlay_update_job") and self._overlay_update_job is not None:
+                    try:
+                        if hasattr(self.root, "after_cancel"):
+                            self.root.after_cancel(self._overlay_update_job)
+                    except Exception:
+                        pass
+                    self._overlay_update_job = None
+            except Exception:
+                pass
+            
+            try:
+                if hasattr(self, "_update_timer") and self._update_timer is not None:
+                    try:
+                        if hasattr(self.root, "after_cancel"):
+                            self.root.after_cancel(self._update_timer)
+                    except Exception:
+                        pass
+                    self._update_timer = None
+            except Exception:
+                pass
+            
             # Persist gui_scale to config
             try:
                 self.config["user"]["gui_scale"] = str(self.gui_scale)
@@ -434,7 +486,7 @@ class StarCitizenKillFeedGUI:
     def _timer_tick(self):
         """Update the timer display and reschedule itself."""
         try:
-            if self.last_kill_time is None or self.last_kill_time == "":
+            if self.last_kill_time is None:
                 self.timer_var.set("--:--:--")
             else:
                 delta = datetime.now() - self.last_kill_time
@@ -666,8 +718,6 @@ class StarCitizenKillFeedGUI:
                     pass
             except Exception:
                 pass
-            except Exception:
-                pass
         except Exception:
             pass
 
@@ -735,6 +785,12 @@ class StarCitizenKillFeedGUI:
             create_statistics_tab(self)
         except Exception:
             logger.debug("create_statistics_tab failed", exc_info=True)
+        try:
+            create_lifetime_stats_tab(self)
+            # Bind tab selection event for auto-refresh
+            self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
+        except Exception:
+            logger.debug("create_lifetime_stats_tab failed", exc_info=True)
         try:
             create_settings_tab(self)
         except Exception:
@@ -1460,6 +1516,722 @@ class StarCitizenKillFeedGUI:
         except Exception as e:
             logger.debug(f"Error changing overlay opacity: {e}", exc_info=True)
 
+    def _on_tab_changed(self, event):
+        """Handle tab selection change to auto-refresh lifetime stats."""
+        try:
+            selected_tab = event.widget.index(event.widget.select())
+            tab_text = event.widget.tab(selected_tab, "text")
+            if tab_text == TAB_LIFETIME_STATS:
+                # Auto-refresh when lifetime stats tab is selected
+                # Check if we have cached data or need to load
+                if self._lifetime_stats_cache is None:
+                    self.refresh_lifetime_stats()
+        except Exception:
+            logger.debug("Error in tab changed handler", exc_info=True)
+    
+    def refresh_lifetime_stats(self, use_cache=True):
+        """Refresh lifetime statistics from CSV file."""
+        try:
+            if not self.player_name:
+                try:
+                    self.lifetime_status_label.config(
+                        text="Error: Player name not configured. Please set your in-game name in Settings.",
+                        fg=THEME_ACCENT_DANGER
+                    )
+                except Exception:
+                    pass
+                return
+            
+            # Get CSV path
+            try:
+                raw = (
+                    self.config["user"].get("auto_log_csv", DEFAULT_CSV_NAME)
+                    or DEFAULT_CSV_NAME
+                )
+                csv_path = resolve_auto_log_path(raw)
+            except Exception:
+                csv_path = None
+            
+            if not csv_path:
+                try:
+                    self.lifetime_status_label.config(
+                        text="Error: CSV log path not configured.",
+                        fg=THEME_ACCENT_DANGER
+                    )
+                except Exception:
+                    pass
+                return
+            
+            # Check cache (skip if refresh button was clicked)
+            if use_cache and self._lifetime_stats_cache is not None:
+                if self._lifetime_stats_cache_path == csv_path:
+                    # Check if file has been modified
+                    try:
+                        current_mtime = os.path.getmtime(csv_path)
+                        if current_mtime == self._lifetime_stats_cache_time:
+                            # Use cached data
+                            cached_data = self._lifetime_stats_cache
+                            self._update_lifetime_statistics_display(
+                                cached_data["lifetime_stats"],
+                                cached_data["weapon_stats"],
+                                cached_data["pvp_stats"],
+                                cached_data["time_trends"],
+                                cached_data["streaks"],
+                                cached_data.get("milestones"),
+                                cached_data.get("recent_history")
+                            )
+                            try:
+                                self.lifetime_status_label.config(
+                                    text=f"Loaded {cached_data['event_count']} events (cached). Last updated: {datetime.now().strftime('%H:%M:%S')}",
+                                    fg=THEME_ACCENT_SUCCESS
+                                )
+                            except Exception:
+                                pass
+                            return
+                    except Exception:
+                        # If cache check fails, proceed with loading
+                        pass
+            
+            # Update status and show progress
+            try:
+                self.lifetime_status_label.config(
+                    text="Loading lifetime statistics...",
+                    fg=THEME_TEXT_SECONDARY
+                )
+                # Show/hide progress bar
+                if hasattr(self, 'lifetime_progress_bar'):
+                    self.lifetime_progress_bar.pack(pady=5)
+                    self.lifetime_progress_bar.configure(mode='indeterminate')
+                    self.lifetime_progress_bar.start(10)
+                self.root.update_idletasks()  # Force UI update
+            except Exception:
+                pass
+            
+            # Check file size to decide if we need background processing
+            try:
+                file_size = os.path.getsize(csv_path)
+                large_file_threshold = 10 * 1024 * 1024  # 10MB
+                
+                if file_size > large_file_threshold:
+                    # Use background thread for large files
+                    self._load_lifetime_stats_background(csv_path)
+                else:
+                    # Load directly for small files
+                    kill_data = load_lifetime_data(csv_path, self.player_name)
+                    self._process_lifetime_stats(kill_data, csv_path)
+            except Exception:
+                # Fallback to direct loading
+                kill_data = load_lifetime_data(csv_path, self.player_name)
+                self._process_lifetime_stats(kill_data, csv_path)
+            
+        except Exception as e:
+            logger.error(f"Error refreshing lifetime stats: {e}", exc_info=True)
+            try:
+                self.lifetime_status_label.config(
+                    text=f"Error loading statistics: {str(e)}",
+                    fg=THEME_ACCENT_DANGER
+                )
+                if hasattr(self, 'lifetime_progress_bar'):
+                    self.lifetime_progress_bar.stop()
+                    self.lifetime_progress_bar.pack_forget()
+            except Exception:
+                pass
+    
+    def _load_lifetime_stats_background(self, csv_path):
+        """Load lifetime stats in background thread for large files."""
+        def load_in_thread():
+            try:
+                kill_data = load_lifetime_data(csv_path, self.player_name)
+                # Schedule UI update on main thread
+                self.safe_after(0, lambda: self._process_lifetime_stats(kill_data, csv_path))
+            except Exception as e:
+                logger.error(f"Error loading lifetime stats in background: {e}", exc_info=True)
+                self.safe_after(0, lambda: self._handle_lifetime_stats_error(str(e)))
+        
+        thread = threading.Thread(target=load_in_thread, daemon=True)
+        thread.start()
+    
+    def _process_lifetime_stats(self, kill_data, csv_path):
+        """Process loaded kill data and update display."""
+        try:
+            # Hide progress bar
+            if hasattr(self, 'lifetime_progress_bar'):
+                self.lifetime_progress_bar.stop()
+                self.lifetime_progress_bar.pack_forget()
+            
+            if not kill_data:
+                try:
+                    self.lifetime_status_label.config(
+                        text=f"No kill data found in CSV: {csv_path}",
+                        fg=THEME_ACCENT_WARNING
+                    )
+                except Exception:
+                    pass
+                # Clear all displays
+                self._update_lifetime_statistics_display(None, None, None, None, None, None, None)
+                return
+            
+            # Update status
+            try:
+                self.lifetime_status_label.config(
+                    text="Calculating statistics...",
+                    fg=THEME_TEXT_SECONDARY
+                )
+                self.root.update_idletasks()
+            except Exception:
+                pass
+            
+            # Calculate statistics
+            lifetime_stats = calculate_lifetime_stats(kill_data, self.player_name)
+            weapon_stats = get_weapon_stats(kill_data, self.player_name)
+            pvp_stats = get_pvp_stats(kill_data, self.player_name)
+            time_trends = get_time_trends(kill_data, self.player_name)
+            streaks = get_streaks_history(kill_data, self.player_name)
+            milestones = detect_milestones(kill_data, self.player_name)
+            
+            # Get recent history (last 50 events, sorted by timestamp desc)
+            recent_history = sorted(kill_data, key=lambda x: x.get("timestamp", datetime.min), reverse=True)[:50]
+            
+            # Update display
+            self._update_lifetime_statistics_display(
+                lifetime_stats, weapon_stats, pvp_stats, time_trends, streaks, milestones, recent_history
+            )
+            
+            # Cache the results
+            try:
+                self._lifetime_stats_cache = {
+                    "lifetime_stats": lifetime_stats,
+                    "weapon_stats": weapon_stats,
+                    "pvp_stats": pvp_stats,
+                    "time_trends": time_trends,
+                    "streaks": streaks,
+                    "milestones": milestones,
+                    "recent_history": recent_history,
+                    "event_count": len(kill_data),
+                }
+                self._lifetime_stats_cache_path = csv_path
+                self._lifetime_stats_cache_time = os.path.getmtime(csv_path)
+            except Exception:
+                pass
+            
+            # Update status
+            try:
+                self.lifetime_status_label.config(
+                    text=f"Loaded {len(kill_data)} events from CSV. Last updated: {datetime.now().strftime('%H:%M:%S')}",
+                    fg=THEME_ACCENT_SUCCESS
+                )
+            except Exception:
+                pass
+                
+        except Exception as e:
+            logger.error(f"Error processing lifetime stats: {e}", exc_info=True)
+            self._handle_lifetime_stats_error(str(e))
+    
+    def _handle_lifetime_stats_error(self, error_msg):
+        """Handle errors during lifetime stats loading."""
+        try:
+            self.lifetime_status_label.config(
+                text=f"Error loading statistics: {error_msg}",
+                fg=THEME_ACCENT_DANGER
+            )
+            if hasattr(self, 'lifetime_progress_bar'):
+                self.lifetime_progress_bar.stop()
+                self.lifetime_progress_bar.pack_forget()
+        except Exception:
+            pass
+    
+    def _update_lifetime_statistics_display(
+        self, lifetime_stats, weapon_stats, pvp_stats, time_trends, streaks, milestones=None, recent_history=None
+    ):
+        """Update the lifetime statistics display with calculated data."""
+        try:
+            if not lifetime_stats:
+                # Clear all labels
+                self.lifetime_kills_label.config(text="Lifetime Kills: --")
+                self.lifetime_deaths_label.config(text="Lifetime Deaths: --")
+                self.lifetime_kd_label.config(text="Lifetime K/D: --")
+                self.lifetime_sessions_label.config(text="Total Sessions: --")
+                self.lifetime_first_kill_label.config(text="First Kill: --")
+                self.lifetime_last_kill_label.config(text="Last Kill: --")
+                if hasattr(self, 'lifetime_play_time_label'):
+                    self.lifetime_play_time_label.config(text="Total Play Time: --")
+                if hasattr(self, 'lifetime_suicide_count_label'):
+                    self.lifetime_suicide_count_label.config(text="Suicides: --")
+                self.lifetime_most_used_label.config(text="Most Used: --")
+                self.lifetime_most_effective_label.config(text="Most Effective: --")
+                self.lifetime_most_killed_label.config(text="Most Killed: --")
+                self.lifetime_nemesis_label.config(text="Nemesis: --")
+                self.lifetime_max_kill_streak_label.config(text="Max Kill Streak: --")
+                self.lifetime_max_death_streak_label.config(text="Max Death Streak: --")
+                if hasattr(self, 'lifetime_avg_kill_streak_label'):
+                    self.lifetime_avg_kill_streak_label.config(text="Avg Kill Streak: --")
+                if hasattr(self, 'lifetime_best_day_label'):
+                    self.lifetime_best_day_label.config(text="Best Day: --")
+                if hasattr(self, 'lifetime_best_week_label'):
+                    self.lifetime_best_week_label.config(text="Best Week: --")
+                if hasattr(self, 'lifetime_best_month_label'):
+                    self.lifetime_best_month_label.config(text="Best Month: --")
+                if hasattr(self, 'lifetime_most_active_day_label'):
+                    self.lifetime_most_active_day_label.config(text="Most Active Day: --")
+                if hasattr(self, 'lifetime_most_active_hour_label'):
+                    self.lifetime_most_active_hour_label.config(text="Most Active Hour: --")
+                if hasattr(self, 'lifetime_kills_per_session_label'):
+                    self.lifetime_kills_per_session_label.config(text="Avg Kills/Session: --")
+                if hasattr(self, 'lifetime_survival_rate_label'):
+                    self.lifetime_survival_rate_label.config(text="Survival Rate: --")
+                
+                # Clear trees
+                if hasattr(self, 'lifetime_weapons_tree'):
+                    for item in self.lifetime_weapons_tree.get_children():
+                        self.lifetime_weapons_tree.delete(item)
+                if hasattr(self, 'lifetime_rivals_tree'):
+                    for item in self.lifetime_rivals_tree.get_children():
+                        self.lifetime_rivals_tree.delete(item)
+                if hasattr(self, 'lifetime_streaks_tree'):
+                    for item in self.lifetime_streaks_tree.get_children():
+                        self.lifetime_streaks_tree.delete(item)
+                if hasattr(self, 'lifetime_milestones_tree'):
+                    for item in self.lifetime_milestones_tree.get_children():
+                        self.lifetime_milestones_tree.delete(item)
+                if hasattr(self, 'lifetime_recent_history_tree'):
+                    for item in self.lifetime_recent_history_tree.get_children():
+                        self.lifetime_recent_history_tree.delete(item)
+                return
+            
+            # Update core metrics
+            self.lifetime_kills_label.config(
+                text=f"Lifetime Kills: {lifetime_stats['total_kills']:,}"
+            )
+            self.lifetime_deaths_label.config(
+                text=f"Lifetime Deaths: {lifetime_stats['total_deaths']:,}"
+            )
+            self.lifetime_kd_label.config(
+                text=f"Lifetime K/D: {lifetime_stats['lifetime_kd_ratio']:.2f}"
+            )
+            self.lifetime_sessions_label.config(
+                text=f"Total Sessions: {lifetime_stats['total_sessions']}"
+            )
+            
+            # Update dates
+            if lifetime_stats.get("first_kill_date"):
+                first_date = lifetime_stats["first_kill_date"].strftime("%Y-%m-%d %H:%M")
+                self.lifetime_first_kill_label.config(text=f"First Kill: {first_date}")
+            else:
+                self.lifetime_first_kill_label.config(text="First Kill: --")
+            
+            if lifetime_stats.get("last_kill_date"):
+                last_date = lifetime_stats["last_kill_date"].strftime("%Y-%m-%d %H:%M")
+                self.lifetime_last_kill_label.config(text=f"Last Kill: {last_date}")
+            else:
+                self.lifetime_last_kill_label.config(text="Last Kill: --")
+            
+            # Update play time
+            if lifetime_stats.get("total_play_time_hours"):
+                hours = lifetime_stats["total_play_time_hours"]
+                days = int(hours // 24)
+                hrs = int(hours % 24)
+                if days > 0:
+                    self.lifetime_play_time_label.config(
+                        text=f"Total Play Time: {days}d {hrs}h"
+                    )
+                else:
+                    self.lifetime_play_time_label.config(
+                        text=f"Total Play Time: {hrs}h"
+                    )
+            else:
+                self.lifetime_play_time_label.config(text="Total Play Time: --")
+            
+            # Update suicide count
+            suicide_count = lifetime_stats.get("suicide_count", 0)
+            self.lifetime_suicide_count_label.config(
+                text=f"Suicides: {suicide_count:,}"
+            )
+            
+            # Update weapon stats
+            if weapon_stats and weapon_stats.get("most_used"):
+                weapon, count = weapon_stats["most_used"]
+                self.lifetime_most_used_label.config(
+                    text=f"Most Used: {weapon} ({count:,} kills)"
+                )
+            else:
+                self.lifetime_most_used_label.config(text="Most Used: --")
+            
+            if weapon_stats and weapon_stats.get("most_effective"):
+                weapon, kd = weapon_stats["most_effective"]
+                if weapon:
+                    self.lifetime_most_effective_label.config(
+                        text=f"Most Effective: {weapon} (K/D: {kd:.2f})"
+                    )
+                else:
+                    self.lifetime_most_effective_label.config(text="Most Effective: --")
+            else:
+                self.lifetime_most_effective_label.config(text="Most Effective: --")
+            
+            # Update weapon mastery table
+            self.lifetime_weapons_tree.delete(*self.lifetime_weapons_tree.get_children())
+            if weapon_stats and weapon_stats.get("mastery_table"):
+                for weapon_data in weapon_stats["mastery_table"]:
+                    first_use = weapon_data.get("first_use")
+                    last_use = weapon_data.get("last_use")
+                    first_str = first_use.strftime("%Y-%m-%d") if first_use else "--"
+                    last_str = last_use.strftime("%Y-%m-%d") if last_use else "--"
+                    self.lifetime_weapons_tree.insert(
+                        "",
+                        "end",
+                        text=weapon_data.get("weapon", ""),
+                        values=(
+                            weapon_data.get("kills", 0),
+                            weapon_data.get("deaths", 0),
+                            f"{weapon_data.get('kd_ratio', 0):.2f}",
+                            f"{weapon_data.get('usage_percentage', 0):.1f}%",
+                            first_str,
+                            last_str,
+                        ),
+                    )
+            
+            # Update PvP stats
+            if pvp_stats and pvp_stats.get("most_killed"):
+                player, count = pvp_stats["most_killed"]
+                if player:
+                    self.lifetime_most_killed_label.config(
+                        text=f"Most Killed: {player} ({count} times)"
+                    )
+                else:
+                    self.lifetime_most_killed_label.config(text="Most Killed: --")
+            else:
+                self.lifetime_most_killed_label.config(text="Most Killed: --")
+            
+            if pvp_stats and pvp_stats.get("nemesis"):
+                player, count = pvp_stats["nemesis"]
+                if player:
+                    self.lifetime_nemesis_label.config(
+                        text=f"Nemesis: {player} (killed you {count} times)"
+                    )
+                else:
+                    self.lifetime_nemesis_label.config(text="Nemesis: --")
+            else:
+                self.lifetime_nemesis_label.config(text="Nemesis: --")
+            
+            # Update rivals table
+            self.lifetime_rivals_tree.delete(*self.lifetime_rivals_tree.get_children())
+            if pvp_stats and pvp_stats.get("rivals_table"):
+                for rival_data in pvp_stats["rivals_table"][:20]:  # Top 20
+                    last_encounter = rival_data.get("last_encounter")
+                    last_str = last_encounter.strftime("%Y-%m-%d") if last_encounter else "--"
+                    self.lifetime_rivals_tree.insert(
+                        "",
+                        "end",
+                        text=rival_data.get("player", ""),
+                        values=(
+                            rival_data.get("killed_them", 0),
+                            rival_data.get("killed_by_them", 0),
+                            f"{rival_data.get('head_to_head_kd', 0):.2f}",
+                            last_str,
+                        ),
+                    )
+            
+            # Update streaks
+            if streaks:
+                self.lifetime_max_kill_streak_label.config(
+                    text=f"Max Kill Streak: {streaks.get('max_kill_streak', 0)}"
+                )
+                self.lifetime_max_death_streak_label.config(
+                    text=f"Max Death Streak: {streaks.get('max_death_streak', 0)}"
+                )
+                
+                # Update average kill streak if label exists
+                if hasattr(self, 'lifetime_avg_kill_streak_label'):
+                    avg_streak = streaks.get('average_kill_streak', 0.0)
+                    self.lifetime_avg_kill_streak_label.config(
+                        text=f"Avg Kill Streak: {avg_streak:.1f}"
+                    )
+                
+                # Update streak history table
+                if hasattr(self, 'lifetime_streaks_tree'):
+                    self.lifetime_streaks_tree.delete(*self.lifetime_streaks_tree.get_children())
+                    streak_history = streaks.get("streak_history", [])
+                    for rank, streak in enumerate(streak_history[:20], 1):
+                        start_date = streak.get("start")
+                        end_date = streak.get("end")
+                        start_str = start_date.strftime("%Y-%m-%d %H:%M") if start_date else "--"
+                        end_str = end_date.strftime("%Y-%m-%d %H:%M") if end_date else "--"
+                        streak_type = streak.get("type", "").capitalize()
+                        self.lifetime_streaks_tree.insert(
+                            "",
+                            "end",
+                            text=str(rank),
+                            values=(
+                                streak_type,
+                                streak.get("length", 0),
+                                start_str,
+                                end_str,
+                            ),
+                        )
+            else:
+                self.lifetime_max_kill_streak_label.config(text="Max Kill Streak: --")
+                self.lifetime_max_death_streak_label.config(text="Max Death Streak: --")
+            
+            # Update average kill streak (even if no streaks)
+            if hasattr(self, 'lifetime_avg_kill_streak_label'):
+                if streaks:
+                    avg_streak = streaks.get('average_kill_streak', 0.0)
+                    self.lifetime_avg_kill_streak_label.config(
+                        text=f"Avg Kill Streak: {avg_streak:.1f}"
+                    )
+                else:
+                    self.lifetime_avg_kill_streak_label.config(text="Avg Kill Streak: --")
+            
+            # Update performance trends
+            if time_trends:
+                best_day = time_trends.get("best_day")
+                if best_day:
+                    self.lifetime_best_day_label.config(
+                        text=f"Best Day: {best_day.get('date', '--')} ({best_day.get('kills', 0)} kills)"
+                    )
+                else:
+                    self.lifetime_best_day_label.config(text="Best Day: --")
+                
+                best_week = time_trends.get("best_week")
+                if best_week:
+                    self.lifetime_best_week_label.config(
+                        text=f"Best Week: {best_week.get('period', '--')} ({best_week.get('kills', 0)} kills)"
+                    )
+                else:
+                    self.lifetime_best_week_label.config(text="Best Week: --")
+                
+                best_month = time_trends.get("best_month")
+                if best_month:
+                    self.lifetime_best_month_label.config(
+                        text=f"Best Month: {best_month.get('period', '--')} ({best_month.get('kills', 0)} kills)"
+                    )
+                else:
+                    self.lifetime_best_month_label.config(text="Best Month: --")
+                
+                # Most active day of week
+                kills_by_day = time_trends.get("kills_by_day_of_week", Counter())
+                if kills_by_day:
+                    most_active_day_num = kills_by_day.most_common(1)[0][0]
+                    day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+                    self.lifetime_most_active_day_label.config(
+                        text=f"Most Active Day: {day_names[most_active_day_num]}"
+                    )
+                else:
+                    self.lifetime_most_active_day_label.config(text="Most Active Day: --")
+                
+                # Most active hour
+                kills_by_hour = time_trends.get("kills_by_hour", Counter())
+                if kills_by_hour:
+                    most_active_hour = kills_by_hour.most_common(1)[0][0]
+                    self.lifetime_most_active_hour_label.config(
+                        text=f"Most Active Hour: {most_active_hour:02d}:00"
+                    )
+                else:
+                    self.lifetime_most_active_hour_label.config(text="Most Active Hour: --")
+            
+            # Update advanced metrics
+            if lifetime_stats:
+                total_kills = lifetime_stats.get("total_kills", 0)
+                total_deaths = lifetime_stats.get("total_deaths", 0)
+                total_sessions = lifetime_stats.get("total_sessions", 0)
+                
+                # Kills per session
+                if total_sessions > 0:
+                    avg_kills = total_kills / total_sessions
+                    self.lifetime_kills_per_session_label.config(
+                        text=f"Avg Kills/Session: {avg_kills:.1f}"
+                    )
+                else:
+                    self.lifetime_kills_per_session_label.config(text="Avg Kills/Session: --")
+                
+                # Survival rate
+                total_encounters = total_kills + total_deaths
+                if total_encounters > 0:
+                    survival_rate = (total_kills / total_encounters) * 100
+                    self.lifetime_survival_rate_label.config(
+                        text=f"Survival Rate: {survival_rate:.1f}%"
+                    )
+                else:
+                    self.lifetime_survival_rate_label.config(text="Survival Rate: --")
+            
+            # Update milestones table
+            if milestones and hasattr(self, 'lifetime_milestones_tree'):
+                self.lifetime_milestones_tree.delete(*self.lifetime_milestones_tree.get_children())
+                for idx, milestone in enumerate(milestones, 1):
+                    milestone_date = milestone.get("timestamp")
+                    date_str = milestone_date.strftime("%Y-%m-%d %H:%M") if milestone_date else "--"
+                    description = milestone.get("description", f"{milestone.get('value', 0):,} Kills")
+                    self.lifetime_milestones_tree.insert(
+                        "",
+                        "end",
+                        text=str(idx),
+                        values=(
+                            description,
+                            date_str,
+                        ),
+                    )
+            elif hasattr(self, 'lifetime_milestones_tree'):
+                # Clear milestones table if no milestones
+                for item in self.lifetime_milestones_tree.get_children():
+                    self.lifetime_milestones_tree.delete(item)
+            
+            # Update recent history table
+            if recent_history and hasattr(self, 'lifetime_recent_history_tree'):
+                self.lifetime_recent_history_tree.delete(*self.lifetime_recent_history_tree.get_children())
+                # Sort by timestamp descending (most recent first)
+                sorted_history = sorted(recent_history, key=lambda x: x.get("timestamp", datetime.min), reverse=True)
+                for idx, event in enumerate(sorted_history[:50], 1):
+                    timestamp = event.get("timestamp")
+                    timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S") if timestamp else "--"
+                    killer = event.get("killer", "")
+                    victim = event.get("victim", "")
+                    weapon = event.get("weapon", "")
+                    
+                    # Format event description
+                    if killer == victim:
+                        if killer == self.player_name:
+                            event_desc = f"You died (suicide) using {weapon}"
+                        else:
+                            event_desc = f"{killer} died (suicide) using {weapon}"
+                    elif killer == self.player_name:
+                        event_desc = f"You killed {victim} using {weapon}"
+                    elif victim == self.player_name:
+                        event_desc = f"{killer} killed you using {weapon}"
+                    else:
+                        event_desc = f"{killer} killed {victim} using {weapon}"
+                    
+                    self.lifetime_recent_history_tree.insert(
+                        "",
+                        "end",
+                        text=str(idx),
+                        values=(
+                            timestamp_str,
+                            killer,
+                            victim,
+                            weapon,
+                            event_desc,
+                        ),
+                    )
+            elif hasattr(self, 'lifetime_recent_history_tree'):
+                # Clear recent history table if no data
+                for item in self.lifetime_recent_history_tree.get_children():
+                    self.lifetime_recent_history_tree.delete(item)
+                
+        except Exception as e:
+            logger.error(f"Error updating lifetime statistics display: {e}", exc_info=True)
+
+    def export_lifetime_report(self):
+        """Export lifetime statistics to JSON file."""
+        try:
+            # Check if we have cached data
+            if self._lifetime_stats_cache is None:
+                messagebox.showwarning(
+                    MSG_WARNING_TITLE,
+                    "No lifetime statistics loaded. Please refresh stats first."
+                )
+                return
+            
+            # Choose save location
+            file_path = filedialog.asksaveasfilename(
+                title="Export Lifetime Statistics Report",
+                defaultextension=".json",
+                filetypes=[
+                    ("JSON files", "*.json"),
+                    ("All files", "*.*"),
+                ],
+            )
+            
+            if not file_path:
+                return
+            
+            # Prepare export data
+            cached_data = self._lifetime_stats_cache
+            export_data = {
+                "player_name": self.player_name,
+                "export_time": datetime.now().isoformat(),
+                "csv_path": self._lifetime_stats_cache_path,
+                "event_count": cached_data["event_count"],
+                "lifetime_statistics": {
+                    "total_kills": cached_data["lifetime_stats"].get("total_kills", 0),
+                    "total_deaths": cached_data["lifetime_stats"].get("total_deaths", 0),
+                    "lifetime_kd_ratio": cached_data["lifetime_stats"].get("lifetime_kd_ratio", 0.0),
+                    "total_sessions": cached_data["lifetime_stats"].get("total_sessions", 0),
+                    "total_play_time_hours": cached_data["lifetime_stats"].get("total_play_time_hours", 0.0),
+                    "suicide_count": cached_data["lifetime_stats"].get("suicide_count", 0),
+                    "first_kill_date": (
+                        cached_data["lifetime_stats"].get("first_kill_date").isoformat()
+                        if cached_data["lifetime_stats"].get("first_kill_date")
+                        else None
+                    ),
+                    "last_kill_date": (
+                        cached_data["lifetime_stats"].get("last_kill_date").isoformat()
+                        if cached_data["lifetime_stats"].get("last_kill_date")
+                        else None
+                    ),
+                },
+                "weapon_statistics": cached_data["weapon_stats"],
+                "pvp_statistics": cached_data["pvp_stats"],
+                "performance_trends": {
+                    "best_day": cached_data["time_trends"].get("best_day"),
+                    "best_week": cached_data["time_trends"].get("best_week"),
+                    "best_month": cached_data["time_trends"].get("best_month"),
+                    "kills_by_hour": dict(cached_data["time_trends"].get("kills_by_hour", Counter())),
+                    "kills_by_day_of_week": dict(cached_data["time_trends"].get("kills_by_day_of_week", Counter())),
+                    "kills_by_day": cached_data["time_trends"].get("kills_by_day", {}),
+                    "kills_by_week": cached_data["time_trends"].get("kills_by_week", {}),
+                    "kills_by_month": cached_data["time_trends"].get("kills_by_month", {}),
+                },
+                "streak_statistics": cached_data["streaks"],
+                "milestones": cached_data.get("milestones", []),
+                "recent_history": cached_data.get("recent_history", []),
+            }
+            
+            # Convert datetime objects in streaks
+            if "streak_history" in export_data["streak_statistics"]:
+                for streak in export_data["streak_statistics"]["streak_history"]:
+                    if streak.get("start"):
+                        streak["start"] = streak["start"].isoformat()
+                    if streak.get("end"):
+                        streak["end"] = streak["end"].isoformat()
+            
+            # Convert datetime objects in weapon mastery table
+            for weapon in export_data["weapon_statistics"].get("mastery_table", []):
+                if weapon.get("first_use"):
+                    weapon["first_use"] = weapon["first_use"].isoformat()
+                if weapon.get("last_use"):
+                    weapon["last_use"] = weapon["last_use"].isoformat()
+            
+            # Convert datetime objects in rivals table
+            for rival in export_data["pvp_statistics"].get("rivals_table", []):
+                if rival.get("last_encounter"):
+                    rival["last_encounter"] = rival["last_encounter"].isoformat()
+            
+            # Convert datetime objects in milestones
+            for milestone in export_data.get("milestones", []):
+                if milestone.get("timestamp"):
+                    milestone["timestamp"] = milestone["timestamp"].isoformat()
+            
+            # Convert datetime objects in recent history
+            for event in export_data.get("recent_history", []):
+                if event.get("timestamp"):
+                    event["timestamp"] = event["timestamp"].isoformat()
+            
+            # Write JSON file
+            import json
+            with open(file_path, "w", encoding="utf-8") as f:
+                json.dump(export_data, f, indent=2)
+            
+            messagebox.showinfo(
+                MSG_SUCCESS_TITLE,
+                f"Lifetime statistics exported successfully to:\n{file_path}"
+            )
+            
+        except Exception as e:
+            logger.error(f"Error exporting lifetime report: {e}", exc_info=True)
+            messagebox.showerror(
+                MSG_ERROR_TITLE,
+                f"Failed to export lifetime report: {str(e)}"
+            )
+    
     def export_data(self):
         """Export kill data to file"""
         if not self.kills_data:
